@@ -19,7 +19,7 @@ async def create_tables() -> None:
                 {"name": "user_id",      "type": BigInteger, "options": {"primary_key": True, "autoincrement": False}},
                 {"name": "username",     "type": String,     "options": {"nullable": True}},
                 {"name": "first_name",   "type": String,     "options": {}},
-                {"name": "is_banned",    "type": Boolean,    "options": {"default": False}},
+                {"name": "is_banned",    "type": Boolean,    "options": {"default": 'false'}},
                 {"name": "registered_at","type": DateTime,   "options": {}},
             ],
         )
