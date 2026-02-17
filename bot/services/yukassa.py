@@ -8,7 +8,6 @@ services/yukassa.py — работа с ЮKassa API.
 
 import uuid
 from yookassa import Configuration, Payment
-from yookassa.domain.models import PaymentMethodType
 
 from bot.config import (
     YUKASSA_SHOP_ID,
@@ -47,7 +46,7 @@ def create_first_payment(user_id: int, description: str | None = None) -> dict:
                 "currency": "RUB",
             },
             "payment_method_data": {
-                "type": PaymentMethodType.SBP,
+                "type": "sbp",
             },
             "confirmation": {
                 "type": "redirect",
