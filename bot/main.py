@@ -13,6 +13,7 @@ from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.client.default import DefaultBotProperties
 from redis.asyncio import Redis
 
 from bot.config import (
@@ -56,7 +57,7 @@ def build_app() -> web.Application:
     redis = Redis.from_url(REDIS_URL, decode_responses=False)
 
     # ── Бот и диспетчер ────────────────────────────────────────────────────────
-    bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
+    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
     storage = RedisStorage(redis=redis)
     dp = Dispatcher(storage=storage)
 
