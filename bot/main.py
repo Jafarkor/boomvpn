@@ -33,6 +33,7 @@ async def on_startup(bot: Bot, redis: Redis) -> None:
     await create_pool()
     await create_tables()
     await bot.set_webhook(WEBHOOK_URL)
+    setup_scheduler(bot)
     logger.info("Webhook set to %s", WEBHOOK_URL)
 
 
@@ -68,9 +69,6 @@ def build_app() -> web.Application:
     # ── Lifecycle ──────────────────────────────────────────────────────────────
     dp.startup.register(lambda: on_startup(bot, redis))
     dp.shutdown.register(lambda: on_shutdown(bot))
-
-    # ── Планировщик ───────────────────────────────────────────────────────────
-    setup_scheduler(bot)
 
     # ── aiohttp-приложение ────────────────────────────────────────────────────
     app = web.Application()
