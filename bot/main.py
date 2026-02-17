@@ -67,8 +67,8 @@ def build_app() -> web.Application:
     register_all_handlers(dp)
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
-    dp.startup.register(lambda: on_startup(bot, redis))
-    dp.shutdown.register(lambda: on_shutdown(bot))
+    dp.startup.register(on_startup)
+    dp.shutdown.register(on_shutdown)
 
     # ── aiohttp-приложение ────────────────────────────────────────────────────
     app = web.Application()
