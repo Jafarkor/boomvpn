@@ -1,0 +1,45 @@
+"""
+middlewares/throttling.py — защита от флуда через Redis.
+
+Ограничение: не более 1 запроса в RATE_LIMIT секунд на пользователя.
+При превышении — молча игнорируем апдейт.
+"""
+
+import logging
+from typing import Any, Callable, Awaitable
+
+from aiogram import BaseMiddleware
+from aiogram.types import TelegramObject, Update
+from redis.asyncio import Redis
+
+logger = logging.getLogger(__name__)
+
+RATE_LIMIT = 1  # секунд между запросами
+
+
+class ThrottlingMiddleware(BaseMiddleware):
+    """Middleware анти-флуд на базе Redis."""
+
+    def __init__(self, redis: Redis) -> None:
+        self._redis = redis
+        super().__init__()
+
+    async def __call__(
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: dict[str, Any],
+    ) -> Any:
+        user = data.get("event_from_user")
+        if user is None:
+            return await handler(event, data)
+
+        key = f"throttle:{user.id}"
+        # SET NX EX — атомарная операция: установить только если не существует
+        result = await self._redis.set(key, "1", ex=RATE_LIMIT, nx=True)
+        if result is None:
+            # Ключ уже существует → пользователь слишком часто шлёт
+            logger.debug("Throttled user %s", user.id)
+            return None  # прерываем цепочку, апдейт игнорируется
+
+        return await handler(event, data)
