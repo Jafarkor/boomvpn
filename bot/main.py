@@ -1,11 +1,3 @@
-"""
-main.py — точка входа приложения.
-
-Поднимает aiohttp-сервер с двумя вебхуками:
-  - /webhook/bot     → Telegram Updates
-  - /webhook/yukassa → ЮKassa уведомления
-"""
-
 import asyncio
 import logging
 
@@ -37,10 +29,17 @@ logger = logging.getLogger(__name__)
 
 
 async def on_startup(bot: Bot, redis: Redis) -> None:
-    """Выполняется при старте: создаём таблицы и регистрируем вебхук."""
+    """Выполняется при старте: создаём таблицы, регистрируем вебхук и запускаем задачи."""
+    # 1. Создаем таблицы в БД
     await create_tables()
+
+    # 2. Устанавливаем вебхук Telegram
     await bot.set_webhook(WEBHOOK_URL)
-    logger.info("Webhook set to %s", WEBHOOK_URL)
+
+    # 3. Запускаем планировщик (теперь внутри цикла событий)
+    setup_scheduler(bot)
+
+    logger.info("Webhook set to %s. Scheduler started.", WEBHOOK_URL)
 
 
 async def on_shutdown(bot: Bot) -> None:
@@ -72,11 +71,9 @@ def build_app() -> web.Application:
     register_all_handlers(dp)
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
+    # Передаем зависимости в on_startup
     dp.startup.register(lambda: on_startup(bot, redis))
     dp.shutdown.register(lambda: on_shutdown(bot))
-
-    # ── Планировщик ───────────────────────────────────────────────────────────
-    setup_scheduler(bot)
 
     # ── aiohttp-приложение ────────────────────────────────────────────────────
     app = web.Application()
