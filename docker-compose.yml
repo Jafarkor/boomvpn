@@ -16,13 +16,14 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB:       vpnbot
-      POSTGRES_USER:     vpnbot
-      POSTGRES_PASSWORD: 22032008Jafar
+      # Используем переменные напрямую, чтобы избежать рассинхрона
+      POSTGRES_DB: "vpnbot"
+      POSTGRES_USER: "vpnbot"
+      POSTGRES_PASSWORD: "22032008Jafar"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vpnbot"]
+      test: ["CMD-SHELL", "pg_isready -U vpnbot -d vpnbot"]
       interval: 5s
       timeout: 5s
       retries: 5
