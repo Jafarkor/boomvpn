@@ -15,6 +15,7 @@ from bot.config import (
     MARZBAN_USERNAME,
     MARZBAN_PASSWORD,
     MARZBAN_INBOUND_TAG,
+    MARZBAN_FLOW,
     PLAN_DAYS,
 )
 
@@ -91,7 +92,7 @@ class MarzbanClient:
         )
         payload = {
             "username": username,
-            "proxies": {"vless": {"flow": ""}},
+            "proxies": {"vless": {"flow": MARZBAN_FLOW}},
             "inbounds": {"vless": [MARZBAN_INBOUND_TAG]},
             "expire": expire_ts,
             "data_limit": 0,          # 0 = без лимита трафика
