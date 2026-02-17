@@ -28,15 +28,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# Aiogram автоматически передаст bot и redis из контекста dp
 async def on_startup(bot: Bot, redis: Redis) -> None:
     """Выполняется при старте: создаём таблицы, регистрируем вебхук и запускаем задачи."""
-    # 1. Создаем таблицы в БД
     await create_tables()
-
-    # 2. Устанавливаем вебхук Telegram
     await bot.set_webhook(WEBHOOK_URL)
 
-    # 3. Запускаем планировщик (теперь внутри цикла событий)
+    # Запускаем планировщик
     setup_scheduler(bot)
 
     logger.info("Webhook set to %s. Scheduler started.", WEBHOOK_URL)
@@ -60,7 +58,7 @@ def build_app() -> web.Application:
     storage = RedisStorage(redis=redis)
     dp = Dispatcher(storage=storage)
 
-    # Передаём redis во все хендлеры через data
+    # Сохраняем redis в data диспетчера, чтобы он был доступен в on_startup и хендлерах
     dp["redis"] = redis
 
     # ── Middleware ─────────────────────────────────────────────────────────────
@@ -71,9 +69,9 @@ def build_app() -> web.Application:
     register_all_handlers(dp)
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
-    # Передаем зависимости в on_startup
-    dp.startup.register(lambda: on_startup(bot, redis))
-    dp.shutdown.register(lambda: on_shutdown(bot))
+    # Просто передаем названия функций. Aiogram сам их вызовет и "подождет" (await)
+    dp.startup.register(on_startup)
+    dp.shutdown.register(on_shutdown)
 
     # ── aiohttp-приложение ────────────────────────────────────────────────────
     app = web.Application()
