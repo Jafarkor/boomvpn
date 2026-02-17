@@ -1,16 +1,26 @@
-"""
-database/manager.py — синглтон DatabaseManager из asyncpg-lite.
+import asyncpg
+from bot.config import PG_DSN
 
-Используем один объект на весь процесс.
-Все операции с БД идут через async with db:
-"""
+# Глобальный пул — инициализируется в create_pool(), закрывается в close_pool()
+pool: asyncpg.Pool | None = None
 
-from asyncpg_lite import DatabaseManager
-from bot.config import PG_DSN, DB_DELETION_PASSWORD
 
-# Единственный объект менеджера — создаётся один раз при импорте
-db = DatabaseManager(
-    db_url=PG_DSN,
-    deletion_password=DB_DELETION_PASSWORD,
-    echo=False,
-)
+async def create_pool() -> None:
+    """Создаёт пул соединений. Вызывается один раз при старте."""
+    global pool
+    pool = await asyncpg.create_pool(dsn=PG_DSN, min_size=2, max_size=10)
+
+
+async def close_pool() -> None:
+    """Закрывает пул соединений. Вызывается при остановке."""
+    global pool
+    if pool:
+        await pool.close()
+        pool = None
+
+
+def get_pool() -> asyncpg.Pool:
+    """Возвращает пул, гарантируя что он инициализирован."""
+    if pool is None:
+        raise RuntimeError("Database pool is not initialized. Call create_pool() first.")
+    return pool

@@ -1,21 +1,17 @@
-"""
-database/subscriptions.py — CRUD для таблицы subscriptions.
-"""
-
 from datetime import datetime, timedelta
-from bot.database.manager import db
+from bot.database.manager import get_pool
 from bot.config import PLAN_DAYS
 
 
 async def get_active_subscription(user_id: int) -> dict | None:
     """Возвращает активную подписку пользователя или None."""
-    async with db:
-        subs = await db.select_data(
-            table_name="subscriptions",
-            where_dict={"user_id": user_id, "is_active": True},
-        )
-    # Берём последнюю активную (на случай гонки, должна быть одна)
-    return subs[-1] if subs else None
+    async with get_pool().acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT * FROM subscriptions
+            WHERE user_id = $1 AND is_active = TRUE
+            ORDER BY id DESC LIMIT 1
+        """, user_id)
+    return dict(row) if row else None
 
 
 async def create_subscription(
@@ -23,99 +19,73 @@ async def create_subscription(
     marzban_username: str,
     payment_method_id: str | None = None,
 ) -> int:
-    """
-    Создаёт новую подписку.
-    Возвращает id созданной записи.
-    """
+    """Создаёт новую подписку. Возвращает id созданной записи."""
     expires_at = datetime.utcnow() + timedelta(days=PLAN_DAYS)
-    async with db:
-        # asyncpg-lite не возвращает id после вставки → вставляем и сразу читаем
-        await db.insert_data_with_update(
-            table_name="subscriptions",
-            records_data={
-                "user_id":                  user_id,
-                "marzban_username":         marzban_username,
-                "expires_at":               expires_at,
-                "is_active":                True,
-                "yukassa_payment_method_id": payment_method_id,
-                "auto_renew":               True,
-            },
-            conflict_column="id",
-            update_on_conflict=False,
+    async with get_pool().acquire() as conn:
+        sub_id = await conn.fetchval("""
+            INSERT INTO subscriptions
+                (user_id, marzban_username, expires_at, is_active,
+                 yukassa_payment_method_id, auto_renew)
+            VALUES ($1, $2, $3, TRUE, $4, TRUE)
+            RETURNING id
+        """,
+            user_id, marzban_username, expires_at, payment_method_id,
         )
-        # Читаем только что созданную подписку
-        subs = await db.select_data(
-            table_name="subscriptions",
-            where_dict={"user_id": user_id, "marzban_username": marzban_username},
-        )
-    # Берём последнюю запись (самую свежую)
-    return subs[-1]["id"] if subs else -1
+    return sub_id
 
 
 async def extend_subscription(subscription_id: int) -> None:
     """Продлевает подписку на PLAN_DAYS дней от текущего expires_at."""
-    async with db:
-        sub = await db.select_data(
-            table_name="subscriptions",
-            where_dict={"id": subscription_id},
-            one_dict=True,
-        )
-        if not sub:
-            return
-        current_expires = sub["expires_at"]
-        # Если подписка уже истекла — отсчёт от сегодня
-        base = max(current_expires, datetime.utcnow())
-        new_expires = base + timedelta(days=PLAN_DAYS)
-        await db.update_data(
-            table_name="subscriptions",
-            where_dict={"id": subscription_id},
-            update_dict={"expires_at": new_expires, "is_active": True},
+    async with get_pool().acquire() as conn:
+        await conn.execute("""
+            UPDATE subscriptions
+            SET expires_at = GREATEST(expires_at, NOW()) + $1::interval,
+                is_active  = TRUE
+            WHERE id = $2
+        """,
+            f"{PLAN_DAYS} days", subscription_id,
         )
 
 
 async def save_payment_method(subscription_id: int, method_id: str) -> None:
     """Сохраняет id платёжного метода ЮKassa для автопродления."""
-    async with db:
-        await db.update_data(
-            table_name="subscriptions",
-            where_dict={"id": subscription_id},
-            update_dict={"yukassa_payment_method_id": method_id},
+    async with get_pool().acquire() as conn:
+        await conn.execute(
+            "UPDATE subscriptions SET yukassa_payment_method_id = $1 WHERE id = $2",
+            method_id, subscription_id,
         )
 
 
 async def deactivate_subscription(subscription_id: int) -> None:
-    """Деактивирует подписку (при отмене или истечении)."""
-    async with db:
-        await db.update_data(
-            table_name="subscriptions",
-            where_dict={"id": subscription_id},
-            update_dict={"is_active": False},
+    """Деактивирует подписку."""
+    async with get_pool().acquire() as conn:
+        await conn.execute(
+            "UPDATE subscriptions SET is_active = FALSE WHERE id = $1",
+            subscription_id,
         )
 
 
 async def toggle_auto_renew(subscription_id: int, enabled: bool) -> None:
     """Включает/выключает автопродление."""
-    async with db:
-        await db.update_data(
-            table_name="subscriptions",
-            where_dict={"id": subscription_id},
-            update_dict={"auto_renew": enabled},
+    async with get_pool().acquire() as conn:
+        await conn.execute(
+            "UPDATE subscriptions SET auto_renew = $1 WHERE id = $2",
+            enabled, subscription_id,
         )
 
 
 async def get_expiring_subscriptions(within_hours: int = 24) -> list[dict]:
     """
-    Возвращает активные подписки с auto_renew=True,
+    Возвращает активные подписки с auto_renew=TRUE и сохранённым методом оплаты,
     которые истекают в ближайшие within_hours часов.
-    Используется планировщиком для автопродления.
     """
     threshold = datetime.utcnow() + timedelta(hours=within_hours)
-    async with db:
-        all_active = await db.select_data(
-            table_name="subscriptions",
-            where_dict={"is_active": True, "auto_renew": True},
-        )
-    return [
-        s for s in all_active
-        if s["expires_at"] <= threshold and s["yukassa_payment_method_id"]
-    ]
+    async with get_pool().acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT * FROM subscriptions
+            WHERE is_active = TRUE
+              AND auto_renew = TRUE
+              AND yukassa_payment_method_id IS NOT NULL
+              AND expires_at <= $1
+        """, threshold)
+    return [dict(r) for r in rows]

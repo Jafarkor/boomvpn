@@ -5,7 +5,6 @@ from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiogram.fsm.storage.redis import RedisStorage
-from aiogram.client.default import DefaultBotProperties
 from redis.asyncio import Redis
 
 from bot.config import (
@@ -14,7 +13,7 @@ from bot.config import (
     WEBHOOK_PATH,
     REDIS_URL,
 )
-from bot.database import create_tables
+from bot.database import create_pool, close_pool, create_tables
 from bot.handlers import register_all_handlers
 from bot.middlewares import ThrottlingMiddleware, BanCheckMiddleware
 from bot.webhooks import register_yukassa_webhook
@@ -28,22 +27,19 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Aiogram автоматически передаст bot и redis из контекста dp
 async def on_startup(bot: Bot, redis: Redis) -> None:
-    """Выполняется при старте: создаём таблицы, регистрируем вебхук и запускаем задачи."""
+    """Выполняется при старте: создаём пул, таблицы и регистрируем вебхук."""
+    await create_pool()
     await create_tables()
     await bot.set_webhook(WEBHOOK_URL)
-
-    # Запускаем планировщик
-    setup_scheduler(bot)
-
-    logger.info("Webhook set to %s. Scheduler started.", WEBHOOK_URL)
+    logger.info("Webhook set to %s", WEBHOOK_URL)
 
 
 async def on_shutdown(bot: Bot) -> None:
     """Выполняется при остановке: очищаем ресурсы."""
     await bot.delete_webhook()
     await marzban.close()
+    await close_pool()
     logger.info("Bot shutdown complete")
 
 
@@ -54,11 +50,11 @@ def build_app() -> web.Application:
     redis = Redis.from_url(REDIS_URL, decode_responses=False)
 
     # ── Бот и диспетчер ────────────────────────────────────────────────────────
-    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
+    bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
     storage = RedisStorage(redis=redis)
     dp = Dispatcher(storage=storage)
 
-    # Сохраняем redis в data диспетчера, чтобы он был доступен в on_startup и хендлерах
+    # Передаём redis во все хендлеры через data
     dp["redis"] = redis
 
     # ── Middleware ─────────────────────────────────────────────────────────────
@@ -69,9 +65,11 @@ def build_app() -> web.Application:
     register_all_handlers(dp)
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
-    # Просто передаем названия функций. Aiogram сам их вызовет и "подождет" (await)
-    dp.startup.register(on_startup)
-    dp.shutdown.register(on_shutdown)
+    dp.startup.register(lambda: on_startup(bot, redis))
+    dp.shutdown.register(lambda: on_shutdown(bot))
+
+    # ── Планировщик ───────────────────────────────────────────────────────────
+    setup_scheduler(bot)
 
     # ── aiohttp-приложение ────────────────────────────────────────────────────
     app = web.Application()
