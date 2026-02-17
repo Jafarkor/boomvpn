@@ -18,7 +18,7 @@ services:
     environment:
       POSTGRES_DB:       vpnbot
       POSTGRES_USER:     vpnbot
-      POSTGRES_PASSWORD: secret       # Перезаписывается через .env при необходимости
+      POSTGRES_PASSWORD: 22032008Jafar
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
