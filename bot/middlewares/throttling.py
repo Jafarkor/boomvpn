@@ -8,7 +8,7 @@ from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
-RATE_LIMIT = 0.5  # секунд между запросами
+RATE_LIMIT = 1  # секунд между запросами
 
 
 class ThrottlingMiddleware(BaseMiddleware):
