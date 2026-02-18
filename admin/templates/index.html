@@ -14,23 +14,36 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font:14px/1.5 'Inter','Segoe UI',system-ui,sans-serif;height:100vh;overflow:hidden}
 
-/* ── Layout ── */
+/* ── Login ── */
 #login{display:flex;align-items:center;justify-content:center;height:100vh;
   background:radial-gradient(ellipse 80% 60% at 50% -10%,#1e1b4b,var(--bg))}
-#app{display:none;height:100vh;display:none}
+.lcard{background:var(--s1);border:1px solid var(--b);border-radius:18px;
+  padding:40px 36px;width:360px;text-align:center;box-shadow:0 32px 64px rgba(0,0,0,.5)}
+.lcard h1{font-size:22px;font-weight:700;margin:12px 0 6px}
+.lcard p{color:var(--dim);font-size:13px;margin-bottom:28px}
+.linput{width:100%;padding:12px 14px;background:var(--s2);border:1px solid var(--b);
+  border-radius:8px;color:var(--txt);font-size:14px;outline:none;margin-bottom:12px;transition:.2s}
+.linput:focus{border-color:var(--acc)}
+.lbtn{width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:8px;
+  font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+.lbtn:hover{opacity:.85}
+.lerr{color:var(--red);font-size:12px;margin-top:10px}
+
+/* ── App ── */
+#app{display:none;height:100vh}
 .shell{display:flex;height:100vh}
 
 /* ── Sidebar ── */
-.side{width:220px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--b);
-  display:flex;flex-direction:column;overflow:hidden}
+.side{width:215px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--b);
+  display:flex;flex-direction:column}
 .brand{padding:20px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--b)}
 .brand-icon{font-size:24px}
 .brand-name{font-size:15px;font-weight:700}
 .brand-sub{font-size:10px;color:var(--dim);letter-spacing:.05em}
-nav{flex:1;padding:10px 8px;overflow-y:auto}
+nav{flex:1;padding:10px 8px}
 .nav-sec{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;padding:12px 8px 4px}
-.ni{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:7px;
-  cursor:pointer;color:var(--dim);font-size:13px;font-weight:500;transition:.15s;margin-bottom:1px}
+.ni{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:7px;cursor:pointer;
+  color:var(--dim);font-size:13px;font-weight:500;transition:.15s;margin-bottom:1px}
 .ni:hover{background:var(--s2);color:var(--txt)}
 .ni.on{background:rgba(124,110,245,.14);color:var(--acc)}
 .ni .ic{width:18px;text-align:center;font-size:14px}
@@ -48,20 +61,7 @@ nav{flex:1;padding:10px 8px;overflow-y:auto}
   padding:3px 10px;font-size:11px;font-weight:600}
 .view{flex:1;overflow-y:auto;padding:20px 24px}
 
-/* ── Login card ── */
-.lcard{background:var(--s1);border:1px solid var(--b);border-radius:18px;
-  padding:40px 36px;width:360px;text-align:center;box-shadow:0 32px 64px rgba(0,0,0,.5)}
-.lcard h1{font-size:22px;font-weight:700;margin:12px 0 6px}
-.lcard p{color:var(--dim);font-size:13px;margin-bottom:28px}
-.linput{width:100%;padding:12px 14px;background:var(--s2);border:1px solid var(--b);
-  border-radius:8px;color:var(--txt);font-size:14px;outline:none;margin-bottom:12px;transition:.2s}
-.linput:focus{border-color:var(--acc)}
-.lbtn{width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:8px;
-  font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
-.lbtn:hover{opacity:.85}
-.lerr{color:var(--red);font-size:12px;margin-top:10px}
-
-/* ── Stats grid ── */
+/* ── Stats ── */
 .sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px}
 .sc{background:var(--s1);border:1px solid var(--b);border-radius:var(--r);padding:18px;position:relative;overflow:hidden}
 .sc::after{content:'';position:absolute;top:0;left:0;right:0;height:3px}
@@ -78,22 +78,61 @@ nav{flex:1;padding:10px 8px;overflow-y:auto}
 
 /* ── Table card ── */
 .tc{background:var(--s1);border:1px solid var(--b);border-radius:var(--r);overflow:hidden}
-.th{padding:14px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  border-bottom:1px solid var(--b);justify-content:space-between}
-.th h2{font-size:14px;font-weight:600}
-.th-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* ── Toolbar ── */
+.tb{padding:14px 16px;display:flex;align-items:flex-start;gap:10px;
+  border-bottom:1px solid var(--b);flex-direction:column}
+.tb-top{display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;flex-wrap:wrap}
+.tb-top h2{font-size:14px;font-weight:600;white-space:nowrap}
+.tb-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%}
+
+/* ── Filter panel ── */
+.fp{background:var(--s2);border-radius:8px;padding:14px;display:flex;gap:12px;
+  flex-wrap:wrap;align-items:flex-end;width:100%}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+.date-range{display:flex;align-items:center;gap:6px}
+.date-range span{font-size:11px;color:var(--dim)}
+
+/* ── Form controls ── */
 .si{background:var(--s2);border:1px solid var(--b);border-radius:7px;padding:7px 11px;
-  color:var(--txt);font-size:12px;outline:none;min-width:170px;transition:.2s}
+  color:var(--txt);font-size:12px;outline:none;transition:.2s}
 .si:focus{border-color:var(--acc)}
+.di{background:var(--s2);border:1px solid var(--b);border-radius:7px;padding:6px 10px;
+  color:var(--txt);font-size:12px;outline:none;cursor:pointer;transition:.2s}
+.di:focus{border-color:var(--acc)}
+.di::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:pointer}
 .fsel{background:var(--s2);border:1px solid var(--b);border-radius:7px;
   padding:7px 10px;color:var(--txt);font-size:12px;outline:none;cursor:pointer}
+
+/* ── Buttons ── */
+.btn{padding:6px 12px;border-radius:7px;border:none;cursor:pointer;font-size:12px;
+  font-weight:600;transition:.15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-acc{background:rgba(124,110,245,.2);color:var(--acc);border:1px solid rgba(124,110,245,.3)}
+.btn-acc:hover:not(:disabled){background:rgba(124,110,245,.32)}
+.btn-grn{background:rgba(52,211,153,.15);color:var(--grn);border:1px solid rgba(52,211,153,.3)}
+.btn-grn:hover:not(:disabled){background:rgba(52,211,153,.28)}
+.btn-red{background:rgba(248,113,113,.13);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.btn-red:hover:not(:disabled){background:rgba(248,113,113,.25)}
+.btn-d{background:0;color:var(--dim);border:1px solid var(--b)}
+.btn-d:hover{color:var(--txt);border-color:var(--txt)}
+.btn-lg{padding:11px 20px;font-size:13px;border-radius:8px}
+.btn-full{width:100%;justify-content:center}
+.btn-icon{padding:6px 8px}
+
+/* ── Search bar ── */
+.search-wrap{display:flex;gap:6px;align-items:center}
+.search-wrap .si{min-width:200px}
+
+/* ── Table ── */
 table{width:100%;border-collapse:collapse}
 thead th{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;
   padding:10px 14px;text-align:left;border-bottom:1px solid var(--b);white-space:nowrap}
 td{padding:10px 14px;font-size:12px;border-bottom:1px solid rgba(37,43,66,.6);vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(255,255,255,.015)}
-.empty-row td{text-align:center;color:var(--dim);padding:32px}
+.empty-row td{text-align:center;color:var(--dim);padding:36px}
 
 /* ── Badges ── */
 .bd{display:inline-flex;align-items:center;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:600}
@@ -103,23 +142,10 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .bd.p{background:rgba(124,110,245,.13);color:var(--acc)}
 .bd.d{background:rgba(100,116,139,.13);color:var(--dim)}
 
-/* ── Buttons ── */
-.btn{padding:5px 10px;border-radius:6px;border:none;cursor:pointer;font-size:11px;
-  font-weight:600;transition:.15s;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-acc{background:rgba(124,110,245,.2);color:var(--acc);border:1px solid rgba(124,110,245,.3)}
-.btn-acc:hover:not(:disabled){background:rgba(124,110,245,.35)}
-.btn-grn{background:rgba(52,211,153,.15);color:var(--grn);border:1px solid rgba(52,211,153,.3)}
-.btn-grn:hover:not(:disabled){background:rgba(52,211,153,.28)}
-.btn-red{background:rgba(248,113,113,.13);color:var(--red);border:1px solid rgba(248,113,113,.3)}
-.btn-red:hover:not(:disabled){background:rgba(248,113,113,.25)}
-.btn-d{background:0;color:var(--dim);border:1px solid var(--b)}
-.btn-d:hover{color:var(--txt);border-color:var(--txt)}
-.btn-lg{padding:11px 20px;font-size:13px;border-radius:8px}
-.btn-full{width:100%;justify-content:center}
-
-/* ── Action group in table ── */
+/* ── Action cells ── */
 .acts{display:flex;gap:4px;flex-wrap:nowrap}
+.sub-col{display:flex;flex-direction:column;gap:2px}
+.sub-days{font-size:10px;color:var(--dim)}
 
 /* ── Pagination ── */
 .pg{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px}
@@ -128,7 +154,16 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .pb:hover{border-color:var(--acc);color:var(--acc)}
 .pb.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .pb:disabled{opacity:.35;cursor:not-allowed}
-.ptxt{font-size:12px;color:var(--dim)}
+.ptxt{font-size:12px;color:var(--dim);padding:0 2px}
+
+/* ── Active filters chips ── */
+.af-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.afc{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
+  background:rgba(124,110,245,.12);border:1px solid rgba(124,110,245,.25);
+  border-radius:20px;font-size:11px;color:var(--acc)}
+.afc button{background:none;border:none;color:var(--acc);cursor:pointer;font-size:13px;
+  padding:0;line-height:1;opacity:.7}
+.afc button:hover{opacity:1}
 
 /* ── Modal ── */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
@@ -146,10 +181,8 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .il{color:var(--dim);flex-shrink:0}
 .iv{font-weight:500;max-width:300px;word-break:break-all;text-align:right}
 .mo-act{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
-.mo-sect{font-size:12px;font-weight:600;color:var(--dim);margin:16px 0 8px;
+.mo-sect{font-size:11px;font-weight:600;color:var(--dim);margin:16px 0 8px;
   text-transform:uppercase;letter-spacing:.05em}
-
-/* ── Sub history mini-table ── */
 .mini-t{width:100%;border-collapse:collapse;border:1px solid var(--b);border-radius:8px;overflow:hidden}
 .mini-t th{font-size:10px;color:var(--dim);text-transform:uppercase;padding:8px 10px;
   background:var(--s2);text-align:left;letter-spacing:.04em}
@@ -157,20 +190,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
 
 /* ── Confirm modal ── */
 .confirm-icon{font-size:40px;text-align:center;margin-bottom:12px}
-.confirm-msg{text-align:center;color:var(--dim);font-size:13px;margin-bottom:20px;line-height:1.6}
-
-/* ── SQL editor ── */
-.sqle{width:100%;min-height:110px;background:var(--s2);border:1px solid var(--b);border-radius:8px;
-  padding:12px;color:var(--txt);font-family:'Courier New',monospace;font-size:12px;
-  outline:none;resize:vertical;transition:.2s;margin-bottom:10px}
-.sqle:focus{border-color:var(--acc)}
-.sql-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.chip{padding:4px 10px;background:var(--s2);border:1px solid var(--b);border-radius:20px;
-  font-size:11px;color:var(--dim);cursor:pointer;transition:.15s}
-.chip:hover{border-color:var(--acc);color:var(--acc)}
-.sql-res{margin-top:14px;overflow-x:auto;border:1px solid var(--b);border-radius:8px}
-.sql-err{margin-top:12px;padding:10px 14px;background:rgba(248,113,113,.08);
-  border:1px solid rgba(248,113,113,.25);border-radius:8px;color:var(--red);font-family:monospace;font-size:12px}
+.confirm-msg{text-align:center;color:var(--dim);font-size:13px;margin-bottom:20px;line-height:1.7}
 
 /* ── Broadcast ── */
 .bcast-ta{width:100%;min-height:140px;background:var(--s2);border:1px solid var(--b);
@@ -183,7 +203,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .bcast-ok{margin-top:14px;padding:10px 14px;background:rgba(52,211,153,.08);
   border:1px solid rgba(52,211,153,.25);border-radius:8px;color:var(--grn);font-size:13px}
 
-/* ── Loading / spinner ── */
+/* ── Loading ── */
 .ld{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--dim);gap:10px}
 .sp{width:18px;height:18px;border:2px solid var(--b);border-top-color:var(--acc);
   border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
@@ -192,14 +212,17 @@ tr:hover td{background:rgba(255,255,255,.015)}
 /* ── Toast ── */
 #toast{position:fixed;bottom:20px;right:20px;background:var(--s2);border:1px solid var(--b);
   border-radius:9px;padding:12px 18px;font-size:13px;z-index:999;
-  transform:translateY(80px);opacity:0;transition:.28s;pointer-events:none}
+  transform:translateY(80px);opacity:0;transition:.28s;pointer-events:none;max-width:300px}
 #toast.show{transform:translateY(0);opacity:1}
 #toast.ok{border-color:rgba(52,211,153,.5);color:var(--grn)}
 #toast.err{border-color:rgba(248,113,113,.5);color:var(--red)}
 
-/* ── Sub status in table ── */
-.sub-col{display:flex;flex-direction:column;gap:2px}
-.sub-days{font-size:10px;color:var(--dim)}
+/* ── Filter toggle btn ── */
+.filter-toggle{display:flex;align-items:center;gap:5px;padding:6px 12px;
+  border-radius:7px;border:1px solid var(--b);background:0;color:var(--dim);
+  cursor:pointer;font-size:12px;font-weight:500;transition:.15s}
+.filter-toggle:hover{border-color:var(--acc);color:var(--acc)}
+.filter-toggle.active{border-color:var(--acc);color:var(--acc);background:rgba(124,110,245,.1)}
 
 @media(max-width:700px){.side{display:none}.cg{grid-template-columns:1fr}}
 </style>
@@ -213,8 +236,8 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <h1>VPN Admin</h1>
     <p>Введите пароль администратора</p>
     <input class="linput" type="password" id="pw" placeholder="Пароль"
-      onkeydown="if(event.key==='Enter')login()">
-    <button class="lbtn" onclick="login()">Войти</button>
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="lbtn" onclick="doLogin()">Войти</button>
     <div class="lerr" id="lerr"></div>
   </div>
 </div>
@@ -229,15 +252,14 @@ tr:hover td{background:rgba(255,255,255,.015)}
     </div>
     <nav>
       <div class="nav-sec">Главное</div>
-      <div class="ni on" data-p="dash" onclick="go('dash')"><span class="ic">📊</span>Дашборд</div>
+      <div class="ni on" data-p="dash"      onclick="go('dash')"><span class="ic">📊</span>Дашборд</div>
       <div class="nav-sec">База данных</div>
-      <div class="ni" data-p="users" onclick="go('users')"><span class="ic">👥</span>Пользователи</div>
-      <div class="ni" data-p="payments" onclick="go('payments')"><span class="ic">💰</span>Платежи</div>
+      <div class="ni"    data-p="users"     onclick="go('users')"><span class="ic">👥</span>Пользователи</div>
+      <div class="ni"    data-p="payments"  onclick="go('payments')"><span class="ic">💰</span>Платежи</div>
       <div class="nav-sec">Инструменты</div>
-      <div class="ni" data-p="broadcast" onclick="go('broadcast')"><span class="ic">📢</span>Рассылка</div>
-      <div class="ni" data-p="sql" onclick="go('sql')"><span class="ic">🔍</span>SQL-консоль</div>
+      <div class="ni"    data-p="broadcast" onclick="go('broadcast')"><span class="ic">📢</span>Рассылка</div>
     </nav>
-    <div class="side-foot"><button class="out-btn" onclick="logout()">🚪 Выйти</button></div>
+    <div class="side-foot"><button class="out-btn" onclick="doLogout()">🚪 Выйти</button></div>
   </aside>
 
   <div class="main">
@@ -262,13 +284,12 @@ tr:hover td{background:rgba(255,255,255,.015)}
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════════
-// CORE
+// CORE UTILS
 // ═══════════════════════════════════════════════════════════════════
 
-const $ = id => document.getElementById(id);
+const $  = id => document.getElementById(id);
 let _charts = {};
 
-// ── API ──────────────────────────────────────────────────────────
 async function api(path, opts = {}) {
   const r = await fetch('/api' + path, {
     headers: {'Content-Type': 'application/json'},
@@ -278,31 +299,54 @@ async function api(path, opts = {}) {
   return r.json();
 }
 
-// ── Toast ────────────────────────────────────────────────────────
 function toast(msg, type = 'ok') {
   const el = $('toast');
   el.textContent = msg;
   el.className = `show ${type}`;
   clearTimeout(window._tt);
-  window._tt = setTimeout(() => el.className = '', 3000);
+  window._tt = setTimeout(() => el.className = '', 3200);
 }
 
-// ── Modal ────────────────────────────────────────────────────────
 function openMo(html) { $('mo-body').innerHTML = html; $('modal').style.display = 'flex'; }
 function closeMo()    { $('modal').style.display = 'none'; }
 
-// ── Auth ─────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtM(v) {
+  return (+(v||0)).toLocaleString('ru-RU', {style:'currency', currency:'RUB', maximumFractionDigits:0});
+}
+
+function fmtD(s) {
+  if (!s) return '—';
+  return new Date(s).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+function fmtDate(s) {
+  if (!s) return '—';
+  return new Date(s).toLocaleDateString('ru-RU', {day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════════
+
 async function checkAuth() {
   const d = await api('/me');
   if (d.logged_in) showApp(); else { $('login').style.display = 'flex'; }
 }
 
-async function login() {
+async function doLogin() {
   const d = await api('/login', {method:'POST', body:{password: $('pw').value}});
   if (d.ok) showApp(); else $('lerr').textContent = d.error || 'Ошибка';
 }
 
-async function logout() {
+async function doLogout() {
   await api('/logout', {method:'POST'});
   $('app').style.display = 'none';
   $('login').style.display = 'flex';
@@ -319,13 +363,13 @@ function showApp() {
 // NAVIGATION
 // ═══════════════════════════════════════════════════════════════════
 
-const PAGE_TITLES = {dash:'Дашборд', users:'Пользователи', payments:'Платежи', broadcast:'Рассылка', sql:'SQL-консоль'};
-const PAGE_FNS    = {dash:renderDash, users:renderUsers, payments:renderPayments, broadcast:renderBroadcast, sql:renderSQL};
+const TITLES = {dash:'Дашборд', users:'Пользователи', payments:'Платежи', broadcast:'Рассылка'};
+const PAGES  = {dash:renderDash, users:renderUsers, payments:renderPayments, broadcast:renderBroadcast};
 
 function go(page) {
   document.querySelectorAll('.ni').forEach(el => el.classList.toggle('on', el.dataset.p === page));
-  $('ptitle').textContent = PAGE_TITLES[page] || page;
-  (PAGE_FNS[page] || (() => {}))();
+  $('ptitle').textContent = TITLES[page] || page;
+  (PAGES[page] || (() => {}))();
 }
 
 function setView(html) { $('view').innerHTML = html; }
@@ -340,7 +384,7 @@ async function renderDash() {
   const d = await api('/stats');
   setView(`
     <div class="sg">
-      <div class="sc p"><div class="sl">Пользователи</div><div class="sv">${d.total_users}</div><div class="ss">+${d.new_today} за сегодня</div></div>
+      <div class="sc p"><div class="sl">Пользователей</div><div class="sv">${d.total_users}</div><div class="ss">+${d.new_today} за сегодня</div></div>
       <div class="sc g"><div class="sl">Активных подписок</div><div class="sv">${d.active_subs}</div><div class="ss">${d.expiring} истекают скоро</div></div>
       <div class="sc y"><div class="sl">Выручка за месяц</div><div class="sv">${fmtM(d.revenue_month)}</div><div class="ss">Всего: ${fmtM(d.revenue_total)}</div></div>
       <div class="sc r"><div class="sl">Заблокировано</div><div class="sv">${d.banned}</div><div class="ss">—</div></div>
@@ -349,18 +393,18 @@ async function renderDash() {
       <div class="cc"><div class="ct">💰 Выручка, 14 дней</div><canvas id="cr" height="130"></canvas></div>
       <div class="cc"><div class="ct">👤 Регистрации, 14 дней</div><canvas id="crg" height="130"></canvas></div>
     </div>`);
-  chart('cr',  d.revenue_chart, 'Выручка', '#7c6ef5');
-  chart('crg', d.reg_chart,     'Рег.',    '#34d399');
+  mkChart('cr',  d.revenue_chart, 'Выручка', '#7c6ef5');
+  mkChart('crg', d.reg_chart,     'Рег.',    '#34d399');
 }
 
-function chart(id, data, label, color) {
+function mkChart(id, data, label, color) {
   if (_charts[id]) _charts[id].destroy();
   _charts[id] = new Chart($(id), {
     type: 'line',
     data: {
-      labels: data.map(r => r.day?.slice(5) || ''),
-      datasets: [{label, data: data.map(r => r.total), borderColor: color,
-        backgroundColor: color+'1a', fill: true, tension: .4, pointRadius: 3}]
+      labels: data.map(r => String(r.day ?? '').slice(5)),
+      datasets: [{label, data: data.map(r => r.total),
+        borderColor: color, backgroundColor: color+'1a', fill:true, tension:.4, pointRadius:3}]
     },
     options: {responsive:true, plugins:{legend:{display:false}},
       scales:{x:{grid:{color:'#252b4222'}, ticks:{color:'#64748b',font:{size:10}}},
@@ -369,89 +413,187 @@ function chart(id, data, label, color) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// USERS — list + subscription management
+// USERS
 // ═══════════════════════════════════════════════════════════════════
 
-let uState = {page:1, search:'', status:'', total:0};
+// State — все фильтры
+const uF = {
+  page: 1,
+  search: '',
+  pendingSearch: '',   // буфер — что в поле ввода
+  sub_status: '',
+  banned: '',
+  reg_from: '',
+  reg_to: '',
+  sub_from: '',
+  sub_to: '',
+  showFilters: false,
+  total: 0,
+};
 
 async function renderUsers() {
   loading();
-  const p = new URLSearchParams({page:uState.page, per_page:25, search:uState.search, status:uState.status});
+  const p = new URLSearchParams({
+    page: uF.page, per_page: 25,
+    search: uF.search,
+    sub_status: uF.sub_status,
+    banned: uF.banned,
+    reg_from: uF.reg_from, reg_to: uF.reg_to,
+    sub_from: uF.sub_from, sub_to: uF.sub_to,
+  });
   const d = await api('/users?' + p);
-  uState.total = d.total;
+  uF.total = d.total;
+  const totalPages = Math.ceil(d.total / 25);
 
   const rows = d.users.map(userRow).join('');
-  const totalPages = Math.ceil(d.total / d.per_page);
+  const chips = activeFilterChips();
 
   setView(`
     <div class="tc">
-      <div class="th">
-        <h2>Пользователи <span style="color:var(--dim);font-weight:400">(${d.total})</span></h2>
-        <div class="th-tools">
-          <input class="si" placeholder="🔍 Поиск..." value="${esc(uState.search)}"
-            oninput="uState.search=this.value;uState.page=1;renderUsers()" style="width:160px">
-          <select class="fsel" onchange="uState.status=this.value;uState.page=1;renderUsers()">
-            <option value="">Все</option>
-            <option value="active_sub"  ${uState.status==='active_sub' ?'selected':''}>С подпиской</option>
-            <option value="no_sub"      ${uState.status==='no_sub'     ?'selected':''}>Без подписки</option>
-            <option value="banned"      ${uState.status==='banned'     ?'selected':''}>Забаненные</option>
-          </select>
-          <button class="btn btn-d" onclick="renderUsers()">↻</button>
+      <div class="tb">
+        <div class="tb-top">
+          <h2>Пользователи <span style="color:var(--dim);font-weight:400">(${d.total})</span></h2>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div class="search-wrap">
+              <input class="si" id="usearch" placeholder="🔍 Поиск по имени, @username, ID"
+                value="${esc(uF.pendingSearch)}" style="min-width:240px"
+                onkeydown="if(event.key==='Enter'){uF.search=this.value;uF.pendingSearch=this.value;uF.page=1;renderUsers()}">
+              <button class="btn btn-acc" onclick="uF.search=$('usearch').value;uF.pendingSearch=$('usearch').value;uF.page=1;renderUsers()">Найти</button>
+            </div>
+            <button class="filter-toggle ${uF.showFilters?'active':''}"
+              onclick="uF.showFilters=!uF.showFilters;renderUsers()">
+              ⚙ Фильтры ${countActiveFilters() ? `<span style="background:var(--acc);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:2px">${countActiveFilters()}</span>` : ''}
+            </button>
+            <button class="btn btn-d" onclick="resetFilters()">✕ Сброс</button>
+            <button class="btn btn-d" onclick="renderUsers()">↻</button>
+          </div>
         </div>
+
+        ${uF.showFilters ? `
+        <div class="fp">
+          <div class="fg">
+            <label>Подписка</label>
+            <select class="fsel" onchange="uF.sub_status=this.value;uF.page=1;renderUsers()">
+              <option value=""       ${!uF.sub_status      ?'selected':''}>Любая</option>
+              <option value="active"   ${uF.sub_status==='active'   ?'selected':''}>Активная</option>
+              <option value="expiring" ${uF.sub_status==='expiring' ?'selected':''}>Истекает (3 дня)</option>
+              <option value="expired"  ${uF.sub_status==='expired'  ?'selected':''}>Истекла</option>
+              <option value="no_sub"   ${uF.sub_status==='no_sub'   ?'selected':''}>Нет подписки</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Статус</label>
+            <select class="fsel" onchange="uF.banned=this.value;uF.page=1;renderUsers()">
+              <option value=""      ${!uF.banned       ?'selected':''}>Все</option>
+              <option value="false" ${uF.banned==='false'?'selected':''}>Активные</option>
+              <option value="true"  ${uF.banned==='true' ?'selected':''}>Забаненные</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Регистрация</label>
+            <div class="date-range">
+              <input type="date" class="di" value="${uF.reg_from}" max="${today()}"
+                onchange="uF.reg_from=this.value;uF.page=1;renderUsers()">
+              <span>—</span>
+              <input type="date" class="di" value="${uF.reg_to}" max="${today()}"
+                onchange="uF.reg_to=this.value;uF.page=1;renderUsers()">
+            </div>
+          </div>
+          <div class="fg">
+            <label>Дата покупки подписки</label>
+            <div class="date-range">
+              <input type="date" class="di" value="${uF.sub_from}" max="${today()}"
+                onchange="uF.sub_from=this.value;uF.page=1;renderUsers()">
+              <span>—</span>
+              <input type="date" class="di" value="${uF.sub_to}" max="${today()}"
+                onchange="uF.sub_to=this.value;uF.page=1;renderUsers()">
+            </div>
+          </div>
+          <div class="fg" style="justify-content:flex-end">
+            <button class="btn btn-d" style="margin-top:auto"
+              onclick="uF.reg_from=today();uF.reg_to=today();uF.page=1;renderUsers()">
+              Только сегодня
+            </button>
+          </div>
+        </div>` : ''}
+
+        ${chips ? `<div class="af-chips">${chips}</div>` : ''}
       </div>
+
       <table>
         <thead><tr>
-          <th>Пользователь</th><th>Статус</th><th>Подписка</th><th>Потрачено</th><th>Дата рег.</th><th>Действия</th>
+          <th>Пользователь</th><th>Статус</th><th>Подписка</th>
+          <th>Потрачено</th><th>Регистрация</th><th>Действия</th>
         </tr></thead>
         <tbody>${rows || '<tr class="empty-row"><td colspan="6">Нет пользователей</td></tr>'}</tbody>
       </table>
-      ${pagination(uState.page, totalPages, 'uState.page', 'renderUsers')}
+      ${mkPagination(uF.page, totalPages, 'uF.page', 'renderUsers')}
     </div>`);
 }
 
+function countActiveFilters() {
+  return [uF.search, uF.sub_status, uF.banned, uF.reg_from, uF.reg_to, uF.sub_from, uF.sub_to]
+    .filter(Boolean).length;
+}
+
+function activeFilterChips() {
+  const chips = [];
+  if (uF.search)     chips.push(chip(`Поиск: "${esc(uF.search)}"`,     "uF.search='';uF.pendingSearch='';uF.page=1;renderUsers()"));
+  if (uF.sub_status) chips.push(chip(`Подписка: ${esc(uF.sub_status)}`, "uF.sub_status='';uF.page=1;renderUsers()"));
+  if (uF.banned)     chips.push(chip(uF.banned==='true'?'Забаненные':'Активные', "uF.banned='';uF.page=1;renderUsers()"));
+  if (uF.reg_from || uF.reg_to)
+    chips.push(chip(`Рег: ${uF.reg_from||'…'} — ${uF.reg_to||'…'}`, "uF.reg_from='';uF.reg_to='';uF.page=1;renderUsers()"));
+  if (uF.sub_from || uF.sub_to)
+    chips.push(chip(`Покупка: ${uF.sub_from||'…'} — ${uF.sub_to||'…'}`, "uF.sub_from='';uF.sub_to='';uF.page=1;renderUsers()"));
+  return chips.join('');
+}
+
+function chip(label, onclick) {
+  return `<span class="afc">${label}<button onclick="${onclick}">×</button></span>`;
+}
+
+function resetFilters() {
+  Object.assign(uF, {page:1, search:'', pendingSearch:'', sub_status:'', banned:'',
+    reg_from:'', reg_to:'', sub_from:'', sub_to:''});
+  renderUsers();
+}
+
+// ── Row rendering ──────────────────────────────────────────────────
 function userRow(u) {
-  const subBadge = subStatusBadge(u);
-  const actions  = subActions(u);
   return `<tr>
     <td>
       <div style="font-weight:600">${esc(u.first_name || '—')}</div>
-      <div style="color:var(--dim);font-size:11px">${u.username ? '@'+esc(u.username) : ''} <code style="font-size:10px">${u.user_id}</code></div>
+      <div style="color:var(--dim);font-size:11px">${u.username?'@'+esc(u.username):''} <code style="font-size:10px">${u.user_id}</code></div>
     </td>
     <td><span class="bd ${u.is_banned?'r':'g'}">${u.is_banned?'🚫 Бан':'✓ OK'}</span></td>
-    <td>${subBadge}</td>
+    <td>${subBadge(u)}</td>
     <td>${fmtM(u.total_spent)}</td>
-    <td style="white-space:nowrap">${fmtD(u.registered_at)}</td>
-    <td><div class="acts">${actions}<button class="btn btn-d" onclick="showUser(${u.user_id})">…</button></div></td>
+    <td style="white-space:nowrap;font-size:11px">${fmtDate(u.registered_at)}</td>
+    <td><div class="acts">${subActions(u)}<button class="btn btn-d btn-icon" onclick="showUser(${u.user_id})" title="Подробнее">…</button></div></td>
   </tr>`;
 }
 
-function subStatusBadge(u) {
+function subBadge(u) {
   if (!u.sub_id) return '<span class="bd d">Нет</span>';
-  const exp = new Date(u.expires_at);
-  const now = new Date();
-  if (!u.sub_active || exp <= now) return '<span class="bd r">Истекла</span>';
+  const exp  = new Date(u.expires_at);
+  const now  = new Date();
+  if (!u.sub_active || exp <= now)
+    return '<span class="bd r">Истекла</span>';
   const days = Math.ceil((exp - now) / 86400000);
-  const cls  = days <= 3 ? 'y' : 'g';
-  return `<div class="sub-col"><span class="bd ${cls}">Активна</span><span class="sub-days">${days}д. осталось</span></div>`;
+  return `<div class="sub-col"><span class="bd ${days<=3?'y':'g'}">Активна</span><span class="sub-days">${days}д. осталось</span></div>`;
 }
 
 function subActions(u) {
   const hasActive = u.sub_id && u.sub_active && new Date(u.expires_at) > new Date();
-  const hasAny    = !!u.sub_id;
-
-  if (!hasAny) {
-    return `<button class="btn btn-grn" onclick="confirmGrant(${u.user_id}, '${esc(u.first_name)}')">🎁 Выдать</button>`;
+  if (!u.sub_id || (!u.sub_active) || new Date(u.expires_at) <= new Date()) {
+    return `<button class="btn btn-grn" onclick="confirmGrant(${u.user_id},'${esc(u.first_name)}')">🎁 Выдать</button>`;
   }
-  if (hasActive) {
-    return `
-      <button class="btn btn-acc" onclick="confirmExtend(${u.user_id}, '${esc(u.first_name)}')">➕ Продлить</button>
-      <button class="btn btn-red" onclick="confirmDisable(${u.user_id}, '${esc(u.first_name)}')">⏹ Откл.</button>`;
-  }
-  // has sub but expired
-  return `<button class="btn btn-grn" onclick="confirmGrant(${u.user_id}, '${esc(u.first_name)}')">🔄 Продлить</button>`;
+  return `
+    <button class="btn btn-acc" onclick="confirmExtend(${u.user_id},'${esc(u.first_name)}')">➕ Продлить</button>
+    <button class="btn btn-red" onclick="confirmDisable(${u.user_id},'${esc(u.first_name)}')">⏹ Откл.</button>`;
 }
 
-// ── User detail modal ─────────────────────────────────────────────
+// ── User detail modal ──────────────────────────────────────────────
 async function showUser(uid) {
   openMo('<div class="ld"><div class="sp"></div>Загрузка...</div>');
   const d = await api('/users/' + uid);
@@ -459,31 +601,28 @@ async function showUser(uid) {
   const u = d.user;
   const hasActive = u.sub_id && u.sub_active && new Date(u.expires_at) > new Date();
 
-  const subRows = d.subscriptions.slice(0, 5).map(s => {
+  const subRows = d.subscriptions.slice(0,5).map(s => {
     const ok = s.is_active && new Date(s.expires_at) > new Date();
-    return `<tr>
-      <td>#${s.id}</td>
-      <td><code>${s.marzban_username}</code></td>
-      <td><span class="bd ${ok?'g':'r'}">${ok?'Активна':'Истекла'}</span></td>
-      <td>${fmtD(s.expires_at)}</td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--dim);padding:10px">Нет подписок</td></tr>';
+    return `<tr><td>#${s.id}</td><td><code style="font-size:10px">${esc(s.marzban_username)}</code></td>
+    <td><span class="bd ${ok?'g':'r'}">${ok?'Активна':'Истекла'}</span></td>
+    <td style="font-size:11px">${fmtD(s.expires_at)}</td></tr>`;
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--dim);padding:12px">Нет подписок</td></tr>';
 
-  const payRows = d.payments.slice(0, 5).map(p =>
+  const payRows = d.payments.slice(0,5).map(p =>
     `<tr><td><span class="bd ${p.status==='succeeded'?'g':p.status==='pending'?'y':'r'}">${p.status}</span></td>
-     <td>${fmtM(p.amount)}</td><td>${fmtD(p.created_at)}</td></tr>`
-  ).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:10px">Нет платежей</td></tr>';
+    <td>${fmtM(p.amount)}</td><td style="font-size:11px">${fmtD(p.created_at)}</td></tr>`
+  ).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:12px">Нет платежей</td></tr>';
 
   openMo(`
     <div class="mo-head">
       <div>
-        <div class="mo-title">${esc(u.first_name)} ${u.username?'@'+esc(u.username):''}</div>
-        <div class="mo-sub">ID: ${u.user_id}</div>
+        <div class="mo-title">${esc(u.first_name)}${u.username?' (@'+esc(u.username)+')':''}</div>
+        <div class="mo-sub">Telegram ID: ${u.user_id}</div>
       </div>
       <button class="mo-x" onclick="closeMo()">✕</button>
     </div>
     <div class="ir"><span class="il">Статус</span><span class="iv"><span class="bd ${u.is_banned?'r':'g'}">${u.is_banned?'Забанен':'Активен'}</span></span></div>
-    <div class="ir"><span class="il">Подписка</span><span class="iv">${subStatusBadge(u)}</span></div>
+    <div class="ir"><span class="il">Подписка</span><span class="iv">${subBadge(u)}</span></div>
     <div class="ir"><span class="il">Регистрация</span><span class="iv">${fmtD(u.registered_at)}</span></div>
     <div class="ir"><span class="il">Потрачено</span><span class="iv">${fmtM(u.total_spent)}</span></div>
 
@@ -509,12 +648,12 @@ async function showUser(uid) {
     </div>`);
 }
 
-// ── Subscription actions ──────────────────────────────────────────
+// ── Subscription actions ───────────────────────────────────────────
 function confirmGrant(uid, name) {
   openMo(`
     <div class="confirm-icon">🎁</div>
     <div class="mo-title" style="text-align:center;margin-bottom:8px">Выдать подписку</div>
-    <div class="confirm-msg">Будет создан пользователь в Marzban и добавлена подписка для<br><b>${esc(name)}</b> (${uid})</div>
+    <div class="confirm-msg">Будет создан пользователь в Marzban<br>и добавлена подписка для <b>${esc(name)}</b></div>
     <div style="display:flex;gap:10px;justify-content:center">
       <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
       <button class="btn btn-grn btn-lg" id="cb" onclick="doGrant(${uid})">✓ Выдать</button>
@@ -525,7 +664,7 @@ function confirmExtend(uid, name) {
   openMo(`
     <div class="confirm-icon">➕</div>
     <div class="mo-title" style="text-align:center;margin-bottom:8px">Продлить подписку</div>
-    <div class="confirm-msg">Подписка для <b>${esc(name)}</b> будет продлена в Marzban и БД</div>
+    <div class="confirm-msg">Подписка будет продлена в Marzban и БД<br>для <b>${esc(name)}</b></div>
     <div style="display:flex;gap:10px;justify-content:center">
       <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
       <button class="btn btn-acc btn-lg" id="cb" onclick="doExtend(${uid})">✓ Продлить</button>
@@ -545,80 +684,81 @@ function confirmDisable(uid, name) {
 }
 
 async function doGrant(uid) {
-  setBtnLoading('cb', '⏳');
+  btnLoad('cb');
   const d = await api('/users/'+uid+'/sub/grant', {method:'POST', body:{}});
   closeMo();
-  if (d.error) toast(d.error, 'err');
-  else { toast('✅ Подписка выдана!'); renderUsers(); }
+  d.error ? toast(d.error, 'err') : (toast('✅ Подписка выдана!'), renderUsers());
 }
 
 async function doExtend(uid) {
-  setBtnLoading('cb', '⏳');
+  btnLoad('cb');
   const d = await api('/users/'+uid+'/sub/extend', {method:'POST', body:{}});
   closeMo();
-  if (d.error) toast(d.error, 'err');
-  else { toast('✅ Подписка продлена!'); renderUsers(); }
+  d.error ? toast(d.error, 'err') : (toast('✅ Подписка продлена!'), renderUsers());
 }
 
 async function doDisable(uid) {
   const del = $('del-mz')?.checked || false;
-  setBtnLoading('cb', '⏳');
+  btnLoad('cb');
   const d = await api('/users/'+uid+'/sub/disable', {method:'POST', body:{delete_marzban:del}});
   closeMo();
-  if (d.error) toast(d.error, 'err');
-  else { toast('Подписка отключена'); renderUsers(); }
+  d.error ? toast(d.error, 'err') : (toast('Подписка отключена'), renderUsers());
 }
 
 async function doBan(uid, banned) {
   const d = await api('/users/'+uid+'/ban', {method:'POST', body:{banned}});
-  if (d.ok) { toast(banned ? '🚫 Забанен' : '✓ Разбанен', banned?'err':'ok'); closeMo(); renderUsers(); }
+  if (d.ok) { toast(banned?'🚫 Забанен':'✓ Разбанен', banned?'err':'ok'); closeMo(); renderUsers(); }
 }
 
-function setBtnLoading(id, label) {
+function btnLoad(id) {
   const el = $(id);
-  if (el) { el.textContent = label; el.disabled = true; }
+  if (el) { el.textContent = '⏳'; el.disabled = true; }
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // PAYMENTS
 // ═══════════════════════════════════════════════════════════════════
 
-let pState = {page:1, status:''};
+const pF = {page:1, status:''};
 
 async function renderPayments() {
   loading();
-  const p = new URLSearchParams({page:pState.page, per_page:25, status:pState.status});
+  const p = new URLSearchParams({page:pF.page, per_page:25, status:pF.status});
   const d = await api('/payments?' + p);
-  const totalPages = Math.ceil(d.total / d.per_page);
+  const totalPages = Math.ceil(d.total / 25);
 
   const rows = d.payments.map(p => `<tr>
-    <td><code style="font-size:10px">${p.user_id}</code><br>
-      <span style="color:var(--dim);font-size:10px">${p.first_name||''} ${p.username?'@'+p.username:''}</span></td>
+    <td>
+      <div style="font-weight:500">${esc(p.first_name||'—')}</div>
+      <div style="color:var(--dim);font-size:11px">${p.username?'@'+esc(p.username):''} <code>${p.user_id}</code></div>
+    </td>
     <td><span class="bd ${p.status==='succeeded'?'g':p.status==='pending'?'y':'r'}">${p.status}</span></td>
     <td style="font-weight:600">${fmtM(p.amount)}</td>
-    <td style="font-size:11px;color:var(--dim)">${p.yukassa_payment_id||'—'}</td>
-    <td>${fmtD(p.created_at)}</td>
+    <td style="font-size:11px;color:var(--dim);max-width:180px;overflow:hidden;text-overflow:ellipsis">${esc(p.yukassa_payment_id||'—')}</td>
+    <td style="font-size:11px;white-space:nowrap">${fmtD(p.created_at)}</td>
   </tr>`).join('');
 
   setView(`
     <div class="tc">
-      <div class="th">
-        <h2>Платежи <span style="color:var(--dim);font-weight:400">(${d.total})</span></h2>
-        <div class="th-tools">
-          <select class="fsel" onchange="pState.status=this.value;pState.page=1;renderPayments()">
-            <option value="">Все статусы</option>
-            <option value="succeeded" ${pState.status==='succeeded'?'selected':''}>Успешные</option>
-            <option value="pending"   ${pState.status==='pending'  ?'selected':''}>Ожидающие</option>
-            <option value="canceled"  ${pState.status==='canceled' ?'selected':''}>Отменённые</option>
-          </select>
-          <button class="btn btn-d" onclick="renderPayments()">↻</button>
+      <div class="tb">
+        <div class="tb-top">
+          <h2>Платежи <span style="color:var(--dim);font-weight:400">(${d.total})</span></h2>
+          <div style="display:flex;gap:8px">
+            <select class="fsel" onchange="pF.status=this.value;pF.page=1;renderPayments()">
+              <option value="">Все статусы</option>
+              <option value="succeeded" ${pF.status==='succeeded'?'selected':''}>Успешные</option>
+              <option value="pending"   ${pF.status==='pending'  ?'selected':''}>Ожидающие</option>
+              <option value="canceled"  ${pF.status==='canceled' ?'selected':''}>Отменённые</option>
+            </select>
+            <button class="btn btn-d" onclick="renderPayments()">↻</button>
+          </div>
         </div>
       </div>
       <table>
         <thead><tr><th>Пользователь</th><th>Статус</th><th>Сумма</th><th>ЮKassa ID</th><th>Дата</th></tr></thead>
         <tbody>${rows || '<tr class="empty-row"><td colspan="5">Нет платежей</td></tr>'}</tbody>
       </table>
-      ${pagination(pState.page, totalPages, 'pState.page', 'renderPayments')}
+      ${mkPagination(pF.page, totalPages, 'pF.page', 'renderPayments')}
     </div>`);
 }
 
@@ -630,11 +770,9 @@ function renderBroadcast() {
   setView(`
     <div class="tc" style="padding:22px;max-width:620px">
       <h2 style="margin-bottom:6px">📢 Рассылка</h2>
-      <p style="color:var(--dim);font-size:13px;margin-bottom:18px">HTML-разметка поддерживается: &lt;b&gt;, &lt;i&gt;, &lt;code&gt;, &lt;a&gt;</p>
+      <p style="color:var(--dim);font-size:13px;margin-bottom:18px">HTML поддерживается: &lt;b&gt;, &lt;i&gt;, &lt;code&gt;, &lt;a href&gt;</p>
       <textarea class="bcast-ta" id="bt" placeholder="Текст рассылки..."></textarea>
-      <label class="chk-row">
-        <input type="checkbox" id="oa"> Только пользователи с активной подпиской
-      </label>
+      <label class="chk-row"><input type="checkbox" id="oa"> Только пользователи с активной подпиской</label>
       <button class="btn btn-acc btn-lg btn-full" id="sbtn" onclick="sendBroadcast()">📤 Отправить</button>
       <div id="bres" style="display:none"></div>
     </div>`);
@@ -655,85 +793,25 @@ async function sendBroadcast() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// SQL CONSOLE
+// PAGINATION
 // ═══════════════════════════════════════════════════════════════════
 
-const SQL_CHIPS = [
-  ['users', 'SELECT * FROM users ORDER BY registered_at DESC LIMIT 20'],
-  ['active subs', "SELECT * FROM subscriptions WHERE is_active AND expires_at > NOW() LIMIT 20"],
-  ['payments', "SELECT * FROM payments WHERE status='succeeded' ORDER BY created_at DESC LIMIT 20"],
-  ['revenue/day', "SELECT DATE(created_at) day, COUNT(*) cnt, SUM(amount) rev FROM payments WHERE status='succeeded' GROUP BY day ORDER BY day DESC LIMIT 14"],
-];
-
-function renderSQL() {
-  const chips = SQL_CHIPS.map(([l,q]) =>
-    `<span class="chip" onclick="setSql(${JSON.stringify(q)})">${l}</span>`).join('');
-  setView(`
-    <div class="tc" style="padding:22px">
-      <h2 style="margin-bottom:6px">🔍 SQL-консоль</h2>
-      <p style="color:var(--dim);font-size:12px;margin-bottom:14px">Только SELECT. Ctrl+Enter для выполнения.</p>
-      <div class="sql-chips">${chips}</div>
-      <textarea class="sqle" id="sqli" placeholder="SELECT ..."></textarea>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-acc" onclick="runSQL()">▶ Выполнить</button>
-        <button class="btn btn-d" onclick="$('sqli').value=''">Очистить</button>
-      </div>
-      <div id="sqlo"></div>
-    </div>`);
-  $('sqli').addEventListener('keydown', e => { if (e.ctrlKey && e.key==='Enter') runSQL(); });
-}
-
-function setSql(q) { $('sqli').value = q; runSQL(); }
-
-async function runSQL() {
-  const sql = $('sqli')?.value?.trim();
-  if (!sql) return;
-  $('sqlo').innerHTML = '<div class="ld" style="padding:20px"><div class="sp"></div></div>';
-  const d = await api('/query', {method:'POST', body:{sql}});
-  if (d.error) { $('sqlo').innerHTML = `<div class="sql-err">❌ ${esc(d.error)}</div>`; return; }
-  if (!d.columns.length) { $('sqlo').innerHTML = '<div style="color:var(--dim);padding:14px;font-size:13px">Нет результатов</div>'; return; }
-
-  const ths = d.columns.map(c => `<th>${c}</th>`).join('');
-  const trs = d.rows.map(r =>
-    `<tr>${r.map(v => `<td style="font-size:11px">${v===null?'<span style="color:var(--dim)">null</span>':String(v).length>80?`<span title="${esc(String(v))}">${esc(String(v).slice(0,80))}…</span>`:esc(String(v))}</td>`).join('')}</tr>`
-  ).join('');
-  $('sqlo').innerHTML = `
-    <div style="font-size:11px;color:var(--dim);padding:10px 0 6px">Строк: ${d.count}</div>
-    <div class="sql-res"><table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>`;
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════════════
-
-function fmtM(v) {
-  return (+(v||0)).toLocaleString('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0});
-}
-
-function fmtD(s) {
-  if (!s) return '—';
-  return new Date(s).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-}
-
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function pagination(page, total, varName, fn) {
+function mkPagination(page, total, varName, fn) {
   if (total <= 1) return '';
-  const pages = [];
-  const start = Math.max(1, page-2), end = Math.min(total, page+2);
-  if (start > 1) pages.push(`<button class="pb" onclick="${varName}=1;${fn}()">1</button>${start>2?'<span class="ptxt">…</span>':''}`);
-  for (let i=start; i<=end; i++) pages.push(`<button class="pb ${i===page?'on':''}" onclick="${varName}=${i};${fn}()">${i}</button>`);
-  if (end < total) pages.push(`${end<total-1?'<span class="ptxt">…</span>':''}<button class="pb" onclick="${varName}=${total};${fn}()">${total}</button>`);
+  const btns = [];
+  const start = Math.max(1, page - 2);
+  const end   = Math.min(total, page + 2);
+  if (start > 1)    btns.push(`<button class="pb" onclick="${varName}=1;${fn}()">1</button>${start>2?'<span class="ptxt">…</span>':''}`);
+  for (let i=start; i<=end; i++) btns.push(`<button class="pb ${i===page?'on':''}" onclick="${varName}=${i};${fn}()">${i}</button>`);
+  if (end < total)  btns.push(`${end<total-1?'<span class="ptxt">…</span>':''}<button class="pb" onclick="${varName}=${total};${fn}()">${total}</button>`);
   return `<div class="pg">
     <button class="pb" onclick="${varName}=Math.max(1,${page}-1);${fn}()" ${page<=1?'disabled':''}>←</button>
-    ${pages.join('')}
+    ${btns.join('')}
     <button class="pb" onclick="${varName}=Math.min(${total},${page}+1);${fn}()" ${page>=total?'disabled':''}>→</button>
   </div>`;
 }
 
-// ── Boot ─────────────────────────────────────────────────────────
+// ── Boot ───────────────────────────────────────────────────────────
 checkAuth();
 </script>
 </body>
