@@ -1,10 +1,3 @@
-"""
-handlers/cabinet.py — личный кабинет пользователя.
-
-Показывает статус подписки, даёт VLESS-конфиг и ссылку подписки,
-управляет автопродлением.
-"""
-
 from datetime import datetime
 from aiogram import Router
 from aiogram.types import CallbackQuery
@@ -51,29 +44,6 @@ async def cb_cabinet(callback: CallbackQuery) -> None:
         kb = cabinet_kb(has_subscription=False)
 
     await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-    await callback.answer()
-
-
-@router.callback_query(lambda c: c.data == "get_config")
-async def cb_get_config(callback: CallbackQuery) -> None:
-    """Отправляет VLESS-ссылку пользователю."""
-    sub = await get_active_subscription(callback.from_user.id)
-    if not sub:
-        await callback.answer("Нет активной подписки.", show_alert=True)
-        return
-
-    link = await marzban.get_vless_link(sub["marzban_username"])
-    if not link:
-        await callback.answer("Не удалось получить конфиг. Попробуйте позже.", show_alert=True)
-        return
-
-    await callback.message.answer(
-        f"<b>Ваш VLESS-конфиг:</b>\n\n"
-        f"<code>{link}</code>\n\n"
-        "Скопируйте и вставьте в приложение (v2rayNG, Hiddify и др.)",
-        reply_markup=back_to_cabinet_kb(),
-        parse_mode="HTML",
-    )
     await callback.answer()
 
 

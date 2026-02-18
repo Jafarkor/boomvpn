@@ -22,7 +22,6 @@ def cabinet_kb(has_subscription: bool, auto_renew: bool | None = None) -> Inline
     kb = InlineKeyboardBuilder()
 
     if has_subscription:
-        kb.button(text="📋 Получить конфиг",  callback_data="get_config")
         kb.button(text="🔗 Ссылка подписки",  callback_data="get_sub_url")
         # Переключатель автопродления
         if auto_renew:
