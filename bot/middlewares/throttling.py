@@ -8,7 +8,7 @@ from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
-RATE_LIMIT = 400  # милисекунд между запросами
+RATE_LIMIT = 0.5  # секунд между запросами
 
 
 class ThrottlingMiddleware(BaseMiddleware):
@@ -30,7 +30,7 @@ class ThrottlingMiddleware(BaseMiddleware):
 
         key = f"throttle:{user.id}"
         # SET NX EX — атомарная операция: установить только если не существует
-        result = await self._redis.set(key, "1", px=RATE_LIMIT, nx=True)
+        result = await self._redis.set(key, "1", ex=timedelta(seconds=float(RATE_LIMIT)), nx=True)
         if result is None:
             # Ключ уже существует → пользователь слишком часто шлёт
             logger.debug("Throttled user %s", user.id)
