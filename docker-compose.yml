@@ -5,45 +5,48 @@ services:
     restart: unless-stopped
     env_file: .env
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - vpnbot
-    ports:
-      - "8080:8080"  # ← ДОБАВЬТЕ ЭТО!
+      postgres: {condition: service_healthy}
+      redis:    {condition: service_healthy}
+    networks: [vpnbot]
+    ports: ["8080:8080"]
+
+  admin:
+    build: ./admin
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      ADMIN_WEB_PASSWORD: "${ADMIN_WEB_PASSWORD:-changeme}"
+      ADMIN_SECRET_KEY:   "${ADMIN_SECRET_KEY:-please_change_me}"
+    depends_on:
+      postgres: {condition: service_healthy}
+    networks: [vpnbot]
+    ports: ["5000:5000"]
 
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      # Используем переменные напрямую, чтобы избежать рассинхрона
-      POSTGRES_DB: "vpnbot"
-      POSTGRES_USER: "vpnbot"
-      POSTGRES_PASSWORD: "22032008Jafar"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      POSTGRES_DB:       vpnbot
+      POSTGRES_USER:     vpnbot
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vpnbot -d vpnbot"]
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - vpnbot
+    networks: [vpnbot]
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    volumes:
-      - redisdata:/data
+    volumes: [redisdata:/data]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - vpnbot
+    networks: [vpnbot]
 
 volumes:
   pgdata:
