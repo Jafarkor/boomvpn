@@ -20,7 +20,7 @@ services:
     depends_on:
       postgres: {condition: service_healthy}
     networks: [vpnbot]
-    ports: ["5000:5000"]
+    ports: ["127.0.0.1:5000:5000"]
 
   postgres:
     image: postgres:16-alpine
