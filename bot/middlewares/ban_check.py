@@ -1,7 +1,3 @@
-"""
-middlewares/ban_check.py — проверка бана пользователя перед обработкой апдейта.
-"""
-
 from typing import Any, Callable, Awaitable
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject

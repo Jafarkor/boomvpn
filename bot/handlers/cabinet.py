@@ -92,10 +92,11 @@ async def cb_get_sub_url(callback: CallbackQuery) -> None:
 
     await callback.message.answer(
         f"<b>Ссылка подписки:</b>\n\n"
-        f"<code>{url}</code>\n\n"
+        f"<code>https://marzban.boomvpn.ru{url}</code>\n\n"
         "Вставьте в раздел «Подписки» вашего клиента для автообновления конфигов.",
         reply_markup=back_to_cabinet_kb(),
         parse_mode="HTML",
+        disable_web_page_preview=True
     )
     await callback.answer()
 

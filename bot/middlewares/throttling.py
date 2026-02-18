@@ -1,10 +1,3 @@
-"""
-middlewares/throttling.py — защита от флуда через Redis.
-
-Ограничение: не более 1 запроса в RATE_LIMIT секунд на пользователя.
-При превышении — молча игнорируем апдейт.
-"""
-
 import logging
 from typing import Any, Callable, Awaitable
 
@@ -14,7 +7,7 @@ from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
 
-RATE_LIMIT = 1  # секунд между запросами
+RATE_LIMIT = 0.5  # секунд между запросами
 
 
 class ThrottlingMiddleware(BaseMiddleware):
