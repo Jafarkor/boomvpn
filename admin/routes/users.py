@@ -1,16 +1,9 @@
 """
 routes/users.py — пользователи и управление подписками.
-
-GET  /api/users                   — список с поиском, пагинацией и фильтрами
-GET  /api/users/<uid>             — детали пользователя
-POST /api/users/<uid>/ban         — бан / разбан
-POST /api/users/<uid>/sub/grant   — выдать подписку
-POST /api/users/<uid>/sub/extend  — продлить подписку
-POST /api/users/<uid>/sub/disable — отключить подписку
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from flask import Blueprint, jsonify, request
 from db import run, conn, row, rows
 import marzban as mz
@@ -19,7 +12,6 @@ bp = Blueprint("users", __name__)
 
 PLAN_DAYS: int = int(os.environ.get("PLAN_DAYS", "30"))
 
-# Единый запрос: пользователь + последняя подписка + агрегаты платежей
 _BASE = """
 SELECT
     u.user_id, u.username, u.first_name, u.is_banned, u.registered_at,
@@ -43,28 +35,37 @@ LEFT JOIN LATERAL (
 """
 
 
-# ── List ───────────────────────────────────────────────────────────────────────
+def _parse_date(s: str) -> date | None:
+    """Конвертирует 'YYYY-MM-DD' → date. asyncpg требует объект date, не строку."""
+    try:
+        return datetime.strptime(s, "%Y-%m-%d").date() if s else None
+    except ValueError:
+        return None
+
+
+# ── List ───────────────────────────────────────────────────────────
 
 @bp.get("/users")
 def list_users():
     page       = max(1, int(request.args.get("page", 1)))
     per_page   = min(100, int(request.args.get("per_page", 25)))
     search     = request.args.get("search", "").strip()
-    sub_status = request.args.get("sub_status", "")   # active | no_sub | expiring | expired
-    banned     = request.args.get("banned", "")        # true | false
-    reg_from   = request.args.get("reg_from", "")      # YYYY-MM-DD
-    reg_to     = request.args.get("reg_to", "")        # YYYY-MM-DD
-    sub_from   = request.args.get("sub_from", "")      # дата покупки подписки от
-    sub_to     = request.args.get("sub_to", "")        # дата покупки подписки до
+    sub_status = request.args.get("sub_status", "")
+    banned     = request.args.get("banned", "")
+    reg_from   = _parse_date(request.args.get("reg_from", ""))
+    reg_to     = _parse_date(request.args.get("reg_to", ""))
+    sub_from   = _parse_date(request.args.get("sub_from", ""))
+    sub_to     = _parse_date(request.args.get("sub_to", ""))
     offset     = (page - 1) * per_page
 
     async def _():
         c = await conn()
         try:
-            filters, params = _build_filters(search, sub_status, banned, reg_from, reg_to, sub_from, sub_to)
+            filters, params = _build_filters(
+                search, sub_status, banned, reg_from, reg_to, sub_from, sub_to
+            )
             where = f"WHERE {' AND '.join(filters)}" if filters else ""
-            n = len(params)
-
+            n     = len(params)
             total = await c.fetchval(f"SELECT COUNT(*) FROM users u {where}", *params)
             data  = await c.fetch(
                 f"{_BASE} {where} ORDER BY u.registered_at DESC LIMIT ${n+1} OFFSET ${n+2}",
@@ -82,7 +83,9 @@ def _build_filters(search, sub_status, banned, reg_from, reg_to, sub_from, sub_t
 
     if search:
         i = len(params) + 1
-        filters.append(f"(u.username ILIKE ${i} OR u.first_name ILIKE ${i} OR u.user_id::text = ${i+1})")
+        filters.append(
+            f"(u.username ILIKE ${i} OR u.first_name ILIKE ${i} OR u.user_id::text = ${i+1})"
+        )
         params += [f"%{search}%", search]
 
     if banned == "true":
@@ -90,48 +93,49 @@ def _build_filters(search, sub_status, banned, reg_from, reg_to, sub_from, sub_t
     elif banned == "false":
         filters.append("u.is_banned = FALSE")
 
-    if sub_status == "active":
-        filters.append("s.is_active = TRUE AND s.expires_at > NOW()")
-    elif sub_status == "expiring":
-        filters.append("s.is_active = TRUE AND s.expires_at BETWEEN NOW() AND NOW() + INTERVAL '3 days'")
-    elif sub_status == "expired":
-        filters.append("(s.is_active = FALSE OR s.expires_at <= NOW())")
-    elif sub_status == "no_sub":
-        filters.append("s.id IS NULL")
+    _SUB = {
+        "active":   "s.is_active = TRUE AND s.expires_at > NOW()",
+        "expiring": "s.is_active = TRUE AND s.expires_at BETWEEN NOW() AND NOW() + INTERVAL '3 days'",
+        "expired":  "(s.is_active = FALSE OR s.expires_at <= NOW())",
+        "no_sub":   "s.id IS NULL",
+    }
+    if sub_status in _SUB:
+        filters.append(_SUB[sub_status])
 
     if reg_from:
         i = len(params) + 1
-        filters.append(f"u.registered_at >= ${i}::date")
+        filters.append(f"u.registered_at >= ${i}")
         params.append(reg_from)
 
     if reg_to:
         i = len(params) + 1
-        filters.append(f"u.registered_at < (${i}::date + INTERVAL '1 day')")
+        filters.append(f"u.registered_at < (${i} + INTERVAL '1 day')")
         params.append(reg_to)
 
     if sub_from or sub_to:
-        sub_clause = _date_clause(params, "px.created_at", sub_from, sub_to)
+        sub_clause = _date_range_clause(params, "px.created_at", sub_from, sub_to)
         filters.append(
-            f"EXISTS (SELECT 1 FROM payments px WHERE px.user_id = u.user_id AND px.status = 'succeeded'{sub_clause})"
+            "EXISTS (SELECT 1 FROM payments px "
+            f"WHERE px.user_id = u.user_id AND px.status = 'succeeded'{sub_clause})"
         )
 
     return filters, params
 
 
-def _date_clause(params: list, col: str, from_val: str, to_val: str) -> str:
+def _date_range_clause(params: list, col: str, from_val, to_val) -> str:
     clause = ""
     if from_val:
         i = len(params) + 1
-        clause += f" AND {col} >= ${i}::date"
+        clause += f" AND {col} >= ${i}"
         params.append(from_val)
     if to_val:
         i = len(params) + 1
-        clause += f" AND {col} < (${i}::date + INTERVAL '1 day')"
+        clause += f" AND {col} < (${i} + INTERVAL '1 day')"
         params.append(to_val)
     return clause
 
 
-# ── Detail ─────────────────────────────────────────────────────────────────────
+# ── Detail ─────────────────────────────────────────────────────────
 
 @bp.get("/users/<int:uid>")
 def user_detail(uid):
@@ -140,7 +144,9 @@ def user_detail(uid):
         try:
             u    = await c.fetchrow(f"{_BASE} WHERE u.user_id = $1", uid)
             subs = await c.fetch("SELECT * FROM subscriptions WHERE user_id=$1 ORDER BY id DESC", uid)
-            pays = await c.fetch("SELECT * FROM payments WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20", uid)
+            pays = await c.fetch(
+                "SELECT * FROM payments WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20", uid
+            )
         finally:
             await c.close()
         if not u:
@@ -153,7 +159,7 @@ def user_detail(uid):
     return jsonify(result)
 
 
-# ── Ban ────────────────────────────────────────────────────────────────────────
+# ── Ban ────────────────────────────────────────────────────────────
 
 @bp.post("/users/<int:uid>/ban")
 def ban_user(uid):
@@ -170,7 +176,7 @@ def ban_user(uid):
     return jsonify({"ok": True, "banned": banned})
 
 
-# ── Grant subscription ─────────────────────────────────────────────────────────
+# ── Grant subscription ─────────────────────────────────────────────
 
 @bp.post("/users/<int:uid>/sub/grant")
 def grant_sub(uid):
@@ -183,7 +189,8 @@ def grant_sub(uid):
         c = await conn()
         try:
             sub_id = await c.fetchval("""
-                INSERT INTO subscriptions (user_id, marzban_username, expires_at, is_active, auto_renew)
+                INSERT INTO subscriptions
+                    (user_id, marzban_username, expires_at, is_active, auto_renew)
                 VALUES ($1, $2, $3, TRUE, TRUE) RETURNING id
             """, uid, mz_username, expires_at)
         finally:
@@ -197,7 +204,7 @@ def grant_sub(uid):
         return jsonify({"error": str(e)}), 500
 
 
-# ── Extend subscription ────────────────────────────────────────────────────────
+# ── Extend subscription ────────────────────────────────────────────
 
 @bp.post("/users/<int:uid>/sub/extend")
 def extend_sub(uid):
@@ -205,14 +212,17 @@ def extend_sub(uid):
         c = await conn()
         try:
             sub = await c.fetchrow(
-                "SELECT id, marzban_username FROM subscriptions WHERE user_id=$1 ORDER BY id DESC LIMIT 1", uid
+                "SELECT id, marzban_username FROM subscriptions "
+                "WHERE user_id=$1 ORDER BY id DESC LIMIT 1",
+                uid,
             )
             if not sub:
                 return {"error": "Подписка не найдена"}
             await mz.extend_user(sub["marzban_username"])
             await c.execute("""
                 UPDATE subscriptions
-                SET expires_at = GREATEST(expires_at, NOW()) + $1::interval, is_active = TRUE
+                SET expires_at = GREATEST(expires_at, NOW()) + $1::interval,
+                    is_active  = TRUE
                 WHERE id = $2
             """, f"{PLAN_DAYS} days", sub["id"])
         finally:
@@ -225,7 +235,7 @@ def extend_sub(uid):
         return jsonify({"error": str(e)}), 500
 
 
-# ── Disable subscription ───────────────────────────────────────────────────────
+# ── Disable subscription ───────────────────────────────────────────
 
 @bp.post("/users/<int:uid>/sub/disable")
 def disable_sub(uid):
