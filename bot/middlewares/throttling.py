@@ -30,7 +30,7 @@ class ThrottlingMiddleware(BaseMiddleware):
 
         key = f"throttle:{user.id}"
         # SET NX EX — атомарная операция: установить только если не существует
-        result = await self._redis.set(key, "1", ex=timedelta(seconds=float(RATE_LIMIT)), nx=True)
+        result = await self._redis.set(key, "1", ex=RATE_LIMIT, nx=True)
         if result is None:
             # Ключ уже существует → пользователь слишком часто шлёт
             logger.debug("Throttled user %s", user.id)
