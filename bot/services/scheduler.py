@@ -65,23 +65,26 @@ async def _on_payment_success(payment_id: str, sub: dict, bot: Bot) -> None:
 
 async def _deactivate_expired(bot: Bot) -> None:
     """Деактивирует истёкшие подписки."""
-    # Берём все активные с auto_renew=False или без метода оплаты
-    from bot.database.manager import db
+    from bot.database.manager import get_pool # Импортируем функцию получения пула
 
-    async with db:
-        all_active = await db.select_data(
-            table_name="subscriptions",
-            where_dict={"is_active": True},
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        # Получаем данные напрямую через соединение asyncpg
+        all_active = await conn.fetch(
+            "SELECT * FROM subscriptions WHERE is_active = $1",
+            True
         )
 
     now = datetime.utcnow()
     for sub in all_active:
-        if sub["expires_at"] < now:
-            await deactivate_subscription(sub["id"])
-            await marzban.delete_user(sub["marzban_username"])
+        # Превращаем Record в dict для удобства (если нужно)
+        sub_data = dict(sub)
+        if sub_data["expires_at"] < now:
+            await deactivate_subscription(sub_data["id"])
+            await marzban.delete_user(sub_data["marzban_username"])
             try:
                 await bot.send_message(
-                    sub["user_id"],
+                    sub_data["user_id"],
                     "❌ Ваша подписка истекла. Для продления нажмите /start.",
                 )
             except Exception:
