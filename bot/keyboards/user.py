@@ -22,6 +22,7 @@ def menu_kb_with_sub() -> InlineKeyboardMarkup:
     """Меню когда подписка активна."""
     kb = InlineKeyboardBuilder()
     kb.button(text="🔗 Ссылка подписки", callback_data="get_sub_url")
+    kb.button(text="📖 Инструкция",      callback_data="instruction")
     kb.button(text="⚙️ Настройки",       callback_data="settings")
     kb.adjust(1)
     return kb.as_markup()

@@ -12,7 +12,7 @@ from bot.database.subscriptions import (
     toggle_auto_renew,
 )
 from bot.keyboards.user import settings_kb, back_to_menu_kb
-from bot.messages import settings_text
+from bot.messages import settings_text, INSTRUCTION_TEXT
 from bot.services.marzban import marzban
 
 logger = logging.getLogger(__name__)
@@ -64,6 +64,15 @@ async def cb_get_sub_url(callback: CallbackQuery) -> None:
         f"🔗 <b>Ссылка подписки</b>\n\n"
         f"<code>{url}</code>\n\n"
         f"<i>Скопируй и вставь в своё приложение.</i>",
+        reply_markup=back_to_menu_kb(),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "instruction")
+async def cb_instruction(callback: CallbackQuery) -> None:
+    await callback.message.answer(
+        INSTRUCTION_TEXT,
         reply_markup=back_to_menu_kb(),
     )
     await callback.answer()
