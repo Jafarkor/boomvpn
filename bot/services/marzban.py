@@ -112,8 +112,14 @@ class MarzbanClient:
             resp.raise_for_status()
 
     async def get_subscription_url(self, username: str) -> str:
-        """Возвращает ссылку подписки для пользователя."""
-        return f"{MARZBAN_URL}/sub/{username}"
+        """Возвращает реальную ссылку подписки из Marzban API."""
+        session = self._get_session()
+        async with session.get(
+            f"/api/user/{username}", headers=await self._headers()
+        ) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+        return data["subscription_url"]
 
     async def delete_user(self, username: str) -> None:
         """Удаляет пользователя из Marzban."""
