@@ -119,7 +119,7 @@ class MarzbanClient:
         ) as resp:
             resp.raise_for_status()
             data = await resp.json()
-        return data["subscription_url"]
+        return f'https://marzban.boomvpn.ru{data["subscription_url"]}'
 
     async def delete_user(self, username: str) -> None:
         """Удаляет пользователя из Marzban."""
