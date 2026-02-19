@@ -60,11 +60,12 @@ async def cb_get_sub_url(callback: CallbackQuery) -> None:
         return
 
     url = await marzban.get_subscription_url(sub["marzban_username"])
-    await callback.message.answer(
+    await callback.message.edit_text(
         f"🔗 <b>Ссылка подписки</b>\n\n"
         f"<code>{url}</code>\n\n"
         f"<i>Скопируй и вставь в своё приложение.</i>",
         reply_markup=back_to_menu_kb(),
+        disable_web_page_preview=True
     )
     await callback.answer()
 
