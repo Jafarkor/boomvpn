@@ -72,7 +72,7 @@ async def cb_get_sub_url(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "instruction")
 async def cb_instruction(callback: CallbackQuery) -> None:
-    await callback.message.answer(
+    await callback.message.edit_text(
         INSTRUCTION_TEXT,
         reply_markup=back_to_menu_kb(),
         disable_web_page_preview=True
