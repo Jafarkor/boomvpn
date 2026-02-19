@@ -92,7 +92,6 @@ class MarzbanClient:
 
     async def extend_user(self, username: str, additional_days: int) -> None:
         """Продлевает подписку пользователя на additional_days дней."""
-        # Сначала получаем текущие данные
         session = self._get_session()
         headers = await self._headers()
 
@@ -112,14 +111,22 @@ class MarzbanClient:
             resp.raise_for_status()
 
     async def get_subscription_url(self, username: str) -> str:
-        """Возвращает реальную ссылку подписки из Marzban API."""
+        """
+        Возвращает полную ссылку подписки из Marzban API.
+        Marzban может вернуть относительный путь — добавляем базовый URL.
+        """
         session = self._get_session()
         async with session.get(
             f"/api/user/{username}", headers=await self._headers()
         ) as resp:
             resp.raise_for_status()
             data = await resp.json()
-        return f'https://marzban.boomvpn.ru{data["subscription_url"]}'
+
+        path = data["subscription_url"]
+        # Если Marzban вернул относительный путь — добавляем базу
+        if path.startswith("/"):
+            return f"{MARZBAN_URL.rstrip('/')}{path}"
+        return path
 
     async def delete_user(self, username: str) -> None:
         """Удаляет пользователя из Marzban."""
