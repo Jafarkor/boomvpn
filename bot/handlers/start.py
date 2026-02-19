@@ -61,7 +61,7 @@ async def cmd_start(message: Message) -> None:
     except Exception as exc:
         logger.error("Gift subscription failed for %s: %s", tg_user.id, exc)
 
-    await message.answer(INSTRUCTION_TEXT, reply_markup=instruction_kb())
+    await message.answer(INSTRUCTION_TEXT, reply_markup=instruction_kb(), disable_web_page_preview=True)
 
     if referrer_id and referrer_id != tg_user.id:
         try:
