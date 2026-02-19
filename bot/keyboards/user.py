@@ -63,5 +63,5 @@ def instruction_kb() -> InlineKeyboardMarkup:
 
 def back_to_menu_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text="◀️ В меню", callback_data="menu")
+    kb.button(text="← В меню", callback_data="menu")
     return kb.as_markup()
