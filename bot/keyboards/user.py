@@ -35,7 +35,7 @@ def settings_kb(auto_renew: bool) -> InlineKeyboardMarkup:
     auto_label = "🔄 Авто: вкл — выключить" if auto_renew else "▶️ Авто: выкл — включить"
     kb.button(text=auto_label,             callback_data="toggle_renew")
     kb.button(text="💳 Продлить вручную",  callback_data="buy")
-    kb.button(text="← Назад",             callback_data="menu")
+    kb.button(text="◀️ Назад",             callback_data="menu")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -63,5 +63,5 @@ def instruction_kb() -> InlineKeyboardMarkup:
 
 def back_to_menu_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text="← В меню", callback_data="menu")
+    kb.button(text="◀️ В меню", callback_data="menu")
     return kb.as_markup()

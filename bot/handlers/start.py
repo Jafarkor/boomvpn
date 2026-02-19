@@ -75,7 +75,6 @@ async def cmd_start(message: Message) -> None:
     await message.answer(
         INSTRUCTION_TEXT,
         reply_markup=instruction_kb(),
-        disable_web_page_preview=True
     )
 
     # Шаг 4: Начисляем бонус пригласившему

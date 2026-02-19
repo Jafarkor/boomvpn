@@ -60,21 +60,19 @@ async def cb_get_sub_url(callback: CallbackQuery) -> None:
         return
 
     url = await marzban.get_subscription_url(sub["marzban_username"])
-    await callback.message.edit_text(
+    await callback.message.answer(
         f"🔗 <b>Ссылка подписки</b>\n\n"
         f"<code>{url}</code>\n\n"
         f"<i>Скопируй и вставь в своё приложение.</i>",
         reply_markup=back_to_menu_kb(),
-        disable_web_page_preview=True
     )
     await callback.answer()
 
 
 @router.callback_query(F.data == "instruction")
 async def cb_instruction(callback: CallbackQuery) -> None:
-    await callback.message.edit_text(
+    await callback.message.answer(
         INSTRUCTION_TEXT,
         reply_markup=back_to_menu_kb(),
-        disable_web_page_preview=True
     )
     await callback.answer()

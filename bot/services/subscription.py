@@ -14,7 +14,6 @@ from bot.database.subscriptions import (
     extend_subscription as db_extend,
     get_active_subscription,
 )
-from bot.database.users import consume_bonus_days
 from bot.services.marzban import marzban
 
 logger = logging.getLogger(__name__)
@@ -47,11 +46,10 @@ async def create_paid_subscription(
     user_id: int, payment_method_id: str | None = None
 ) -> tuple[int, str]:
     """
-    Создаёт или продлевает платную подписку на PLAN_DAYS + bonus_days.
+    Создаёт или продлевает платную подписку на PLAN_DAYS дней.
     Возвращает (subscription_id, subscription_url).
     """
-    bonus = await consume_bonus_days(user_id)
-    total_days = PLAN_DAYS + bonus
+    total_days = PLAN_DAYS
     username = _marzban_username(user_id)
 
     existing = await get_active_subscription(user_id)
