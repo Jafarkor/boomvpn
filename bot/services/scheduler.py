@@ -1,108 +1,50 @@
 """
-services/scheduler.py — APScheduler для фоновых задач.
+services/scheduler.py — планировщик задач (APScheduler).
 
 Задачи:
-  1. check_expiring — каждые 6 часов ищет подписки, истекающие через 24 ч,
-     и запускает автопродление.
-  2. deactivate_expired — каждый час отключает истёкшие подписки в Marzban.
+  • auto_renew_check — каждый час проверяет истекающие подписки
+    и списывает оплату через ЮKassa.
 """
 
 import logging
-from datetime import datetime
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from bot.database.subscriptions import (
-    get_expiring_subscriptions,
-    extend_subscription,
-    deactivate_subscription,
-    get_active_subscription,
-)
-from bot.database.payments import create_payment, update_payment_status
-from bot.services.yukassa import create_recurring_payment
+from bot.database.subscriptions import get_expiring_subscriptions, deactivate_subscription
 from bot.services.marzban import marzban
+from bot.services.payment import charge_auto_renew
 
 logger = logging.getLogger(__name__)
-scheduler = AsyncIOScheduler(timezone="UTC")
 
-
-async def _renew_subscription(sub: dict, bot: Bot) -> None:
-    """Пытается продлить одну подписку через рекуррентный платёж."""
-    user_id = sub["user_id"]
-    method_id = sub["yukassa_payment_method_id"]
-
-    try:
-        payment_data = create_recurring_payment(user_id, method_id)
-        payment_id = payment_data["id"]
-        await create_payment(user_id, payment_id, sub["id"])
-
-        # ЮKassa для рекуррентных платежей часто сразу succeeded
-        if payment_data["status"] == "succeeded":
-            await _on_payment_success(payment_id, sub, bot)
-        else:
-            # Статус придёт вебхуком — ждём
-            logger.info("Recurring payment %s for user %s pending", payment_id, user_id)
-    except Exception as e:
-        logger.error("Failed to renew sub %s: %s", sub["id"], e)
-        await bot.send_message(
-            user_id,
-            "⚠️ Не удалось продлить подписку автоматически.\n"
-            "Пожалуйста, продлите её вручную через /start → Личный кабинет.",
-        )
-
-
-async def _on_payment_success(payment_id: str, sub: dict, bot: Bot) -> None:
-    """Обновляет БД и Marzban после успешного рекуррентного платежа."""
-    await update_payment_status(payment_id, "succeeded")
-    await extend_subscription(sub["id"])
-    await marzban.extend_user(sub["marzban_username"])
-    try:
-        await bot.send_message(sub["user_id"], "✅ Подписка автоматически продлена!")
-    except Exception:
-        pass  # Пользователь мог заблокировать бота
-
-
-async def _deactivate_expired(bot: Bot) -> None:
-    """Деактивирует истёкшие подписки."""
-    from bot.database.manager import get_pool # Импортируем функцию получения пула
-
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        # Получаем данные напрямую через соединение asyncpg
-        all_active = await conn.fetch(
-            "SELECT * FROM subscriptions WHERE is_active = $1",
-            True
-        )
-
-    now = datetime.utcnow()
-    for sub in all_active:
-        # Превращаем Record в dict для удобства (если нужно)
-        sub_data = dict(sub)
-        if sub_data["expires_at"] < now:
-            await deactivate_subscription(sub_data["id"])
-            await marzban.delete_user(sub_data["marzban_username"])
-            try:
-                await bot.send_message(
-                    sub_data["user_id"],
-                    "❌ Ваша подписка истекла. Для продления нажмите /start.",
-                )
-            except Exception:
-                pass
+_scheduler: AsyncIOScheduler | None = None
 
 
 def setup_scheduler(bot: Bot) -> None:
-    """Регистрирует задачи и запускает планировщик."""
-
-    async def job_renew():
-        subs = await get_expiring_subscriptions(within_hours=24)
-        for sub in subs:
-            await _renew_subscription(sub, bot)
-
-    async def job_deactivate():
-        await _deactivate_expired(bot)
-
-    scheduler.add_job(job_renew,     "interval", hours=6,   id="renew")
-    scheduler.add_job(job_deactivate,"interval", hours=1,   id="deactivate")
-    scheduler.start()
+    """Инициализирует и запускает планировщик."""
+    global _scheduler
+    _scheduler = AsyncIOScheduler(timezone="UTC")
+    _scheduler.add_job(
+        _auto_renew_task,
+        trigger="interval",
+        hours=1,
+        id="auto_renew",
+        kwargs={"bot": bot},
+    )
+    _scheduler.start()
     logger.info("Scheduler started")
+
+
+async def _auto_renew_task(bot: Bot) -> None:
+    """Продлевает подписки с автопродлением у которых осталось < 24 ч."""
+    subscriptions = await get_expiring_subscriptions(within_hours=24)
+    logger.info("Auto-renew check: %d subscriptions to process", len(subscriptions))
+
+    for sub in subscriptions:
+        try:
+            success = await charge_auto_renew(sub, bot=bot)
+            if not success:
+                await deactivate_subscription(sub["id"])
+                await marzban.extend_user(sub["marzban_username"], 0)  # заморозка
+        except Exception as exc:
+            logger.error("Auto-renew failed for sub %s: %s", sub["id"], exc)

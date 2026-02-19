@@ -38,6 +38,10 @@ PLAN_PRICE: int = config("PLAN_PRICE", cast=int, default=299)
 PLAN_DAYS: int = config("PLAN_DAYS", cast=int, default=30)
 PLAN_NAME: str = config("PLAN_NAME", default="VPN Pro")
 
+# Подарочные и реферальные дни
+GIFT_DAYS: int = config("GIFT_DAYS", cast=int, default=7)
+REFERRAL_BONUS_DAYS: int = config("REFERRAL_BONUS_DAYS", cast=int, default=7)
+
 # ── Marzban ───────────────────────────────────────────────────────────────────
 
 MARZBAN_URL: str = config("MARZBAN_URL")

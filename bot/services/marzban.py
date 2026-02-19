@@ -1,14 +1,14 @@
 """
-services/marzban.py — клиент Marzban REST API.
+services/marzban.py — клиент для работы с Marzban API.
 
-Документация Marzban: https://github.com/Gozargah/Marzban
-Все методы используют один aiohttp.ClientSession на время жизни объекта.
+Все обращения к Marzban идут через этот модуль.
 """
 
-import aiohttp
-import secrets
-import string
+import logging
 from datetime import datetime, timedelta
+from typing import Any
+
+import aiohttp
 
 from bot.config import (
     MARZBAN_URL,
@@ -16,27 +16,23 @@ from bot.config import (
     MARZBAN_PASSWORD,
     MARZBAN_INBOUND_TAG,
     MARZBAN_FLOW,
-    PLAN_DAYS,
 )
 
+logger = logging.getLogger(__name__)
 
-def _random_username(prefix: str = "vpn", length: int = 8) -> str:
-    """Генерирует уникальное имя пользователя для Marzban."""
-    alphabet = string.ascii_lowercase + string.digits
-    suffix = "".join(secrets.choice(alphabet) for _ in range(length))
-    return f"{prefix}_{suffix}"
+_TOKEN: str | None = None
+_TOKEN_EXPIRES: datetime = datetime.min
 
 
 class MarzbanClient:
-    """Тонкая обёртка над Marzban HTTP API."""
+    """Тонкий клиент к Marzban REST API с автообновлением токена."""
 
     def __init__(self) -> None:
-        self._token: str | None = None
         self._session: aiohttp.ClientSession | None = None
 
     # ── Сессия ────────────────────────────────────────────────────────────────
 
-    async def _get_session(self) -> aiohttp.ClientSession:
+    def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession(base_url=MARZBAN_URL)
         return self._session
@@ -47,99 +43,87 @@ class MarzbanClient:
 
     # ── Авторизация ───────────────────────────────────────────────────────────
 
-    async def _authenticate(self) -> str:
-        """Получает JWT-токен через логин/пароль."""
-        session = await self._get_session()
+    async def _get_token(self) -> str:
+        global _TOKEN, _TOKEN_EXPIRES
+        if _TOKEN and datetime.utcnow() < _TOKEN_EXPIRES:
+            return _TOKEN
+
+        session = self._get_session()
         async with session.post(
             "/api/admin/token",
             data={"username": MARZBAN_USERNAME, "password": MARZBAN_PASSWORD},
         ) as resp:
             resp.raise_for_status()
             data = await resp.json()
-            self._token = data["access_token"]
-            return self._token
 
-    async def _headers(self) -> dict:
-        """Возвращает заголовки с актуальным токеном."""
-        token = self._token or await self._authenticate()
+        _TOKEN = data["access_token"]
+        _TOKEN_EXPIRES = datetime.utcnow() + timedelta(minutes=50)
+        return _TOKEN
+
+    async def _headers(self) -> dict[str, str]:
+        token = await self._get_token()
         return {"Authorization": f"Bearer {token}"}
 
-    async def _request(self, method: str, path: str, **kwargs) -> dict:
-        """Выполняет запрос, при 401 обновляет токен и повторяет."""
-        session = await self._get_session()
-        headers = await self._headers()
-        async with session.request(method, path, headers=headers, **kwargs) as resp:
-            if resp.status == 401:
-                # Токен протух — перелогиниваемся
-                self._token = None
-                headers = await self._headers()
-                async with session.request(method, path, headers=headers, **kwargs) as r:
-                    r.raise_for_status()
-                    return await r.json()
+    # ── Пользователи ──────────────────────────────────────────────────────────
+
+    async def create_user(self, username: str, days: int) -> dict[str, Any]:
+        """Создаёт пользователя в Marzban и возвращает данные."""
+        expire_ts = int((datetime.utcnow() + timedelta(days=days)).timestamp())
+        payload = {
+            "username": username,
+            "proxies": {
+                "vless": {
+                    "flow": MARZBAN_FLOW,
+                    "id": None,
+                }
+            },
+            "inbounds": {"vless": [MARZBAN_INBOUND_TAG]},
+            "expire": expire_ts,
+            "data_limit": 0,
+            "data_limit_reset_strategy": "no_reset",
+            "status": "active",
+        }
+        session = self._get_session()
+        async with session.post(
+            "/api/user", json=payload, headers=await self._headers()
+        ) as resp:
             resp.raise_for_status()
             return await resp.json()
 
-    # ── Публичные методы ──────────────────────────────────────────────────────
+    async def extend_user(self, username: str, additional_days: int) -> None:
+        """Продлевает подписку пользователя на additional_days дней."""
+        # Сначала получаем текущие данные
+        session = self._get_session()
+        headers = await self._headers()
 
-    async def create_user(self, user_id: int) -> dict:
-        """
-        Создаёт пользователя в Marzban.
-        Возвращает dict с полями: username, links (список VLESS-ссылок).
-        """
-        username = _random_username(prefix=f"u{user_id}")
-        expire_ts = int(
-            (datetime.utcnow() + timedelta(days=PLAN_DAYS)).timestamp()
-        )
-        payload = {
-            "username": username,
-            "proxies": {"vless": {"flow": MARZBAN_FLOW}},
-            "inbounds": {"vless": [MARZBAN_INBOUND_TAG]},
-            "expire": expire_ts,
-            "data_limit": 0,          # 0 = без лимита трафика
-            "data_limit_reset_strategy": "no_reset",
-        }
-        return await self._request("POST", "/api/user", json=payload)
+        async with session.get(f"/api/user/{username}", headers=headers) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
 
-    async def get_user(self, username: str) -> dict | None:
-        """Получает информацию о пользователе из Marzban."""
-        try:
-            return await self._request("GET", f"/api/user/{username}")
-        except aiohttp.ClientResponseError as e:
-            if e.status == 404:
-                return None
-            raise
+        current_expire = data.get("expire") or int(datetime.utcnow().timestamp())
+        new_expire = max(current_expire, int(datetime.utcnow().timestamp()))
+        new_expire += additional_days * 86400
 
-    async def extend_user(self, username: str, extra_days: int = PLAN_DAYS) -> None:
-        """Продлевает срок действия пользователя в Marzban."""
-        user = await self.get_user(username)
-        if not user:
-            return
-        current = user.get("expire") or int(datetime.utcnow().timestamp())
-        base = max(current, int(datetime.utcnow().timestamp()))
-        new_expire = base + extra_days * 86400
-        await self._request(
-            "PUT",
+        async with session.put(
             f"/api/user/{username}",
-            json={"expire": new_expire},
-        )
+            json={"expire": new_expire, "status": "active"},
+            headers=headers,
+        ) as resp:
+            resp.raise_for_status()
+
+    async def get_subscription_url(self, username: str) -> str:
+        """Возвращает ссылку подписки для пользователя."""
+        return f"{MARZBAN_URL}/sub/{username}"
 
     async def delete_user(self, username: str) -> None:
         """Удаляет пользователя из Marzban."""
-        await self._request("DELETE", f"/api/user/{username}")
-
-    async def get_vless_link(self, username: str) -> str | None:
-        """Возвращает первую VLESS-ссылку пользователя или None."""
-        user = await self.get_user(username)
-        if not user:
-            return None
-        links: list[str] = user.get("links", [])
-        return next((l for l in links if l.startswith("vless://")), None)
-
-    async def get_subscription_url(self, username: str) -> str | None:
-        """Возвращает subscription_url для импорта в клиент (если доступен)."""
-        user = await self.get_user(username)
-        return user.get("subscription_url") if user else None
+        session = self._get_session()
+        async with session.delete(
+            f"/api/user/{username}", headers=await self._headers()
+        ) as resp:
+            if resp.status not in (200, 404):
+                resp.raise_for_status()
 
 
-# Глобальный клиент — создаётся один раз
+# Глобальный экземпляр — используется во всём проекте
 marzban = MarzbanClient()

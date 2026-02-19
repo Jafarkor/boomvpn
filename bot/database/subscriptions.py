@@ -18,9 +18,11 @@ async def create_subscription(
     user_id: int,
     marzban_username: str,
     payment_method_id: str | None = None,
+    days: int | None = None,
 ) -> int:
     """Создаёт новую подписку. Возвращает id созданной записи."""
-    expires_at = datetime.utcnow() + timedelta(days=PLAN_DAYS)
+    total_days = days if days is not None else PLAN_DAYS
+    expires_at = datetime.utcnow() + timedelta(days=total_days)
     async with get_pool().acquire() as conn:
         sub_id = await conn.fetchval("""
             INSERT INTO subscriptions
@@ -34,8 +36,9 @@ async def create_subscription(
     return sub_id
 
 
-async def extend_subscription(subscription_id: int) -> None:
-    """Продлевает подписку на PLAN_DAYS дней от текущего expires_at."""
+async def extend_subscription(subscription_id: int, days: int | None = None) -> None:
+    """Продлевает подписку на days дней (по умолчанию PLAN_DAYS) от текущего expires_at."""
+    extend_days = days if days is not None else PLAN_DAYS
     async with get_pool().acquire() as conn:
         await conn.execute("""
             UPDATE subscriptions
@@ -43,7 +46,7 @@ async def extend_subscription(subscription_id: int) -> None:
                 is_active  = TRUE
             WHERE id = $2
         """,
-            f"{PLAN_DAYS} days", subscription_id,
+            f"{extend_days} days", subscription_id,
         )
 
 
