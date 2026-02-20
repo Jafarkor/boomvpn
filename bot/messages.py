@@ -65,7 +65,7 @@ INSTRUCTION_TEXT = (
 
 # ── Главное меню ──────────────────────────────────────────────────────────────
 
-def menu_text(name: str, sub: dict | None, ref_link: str, ref_count: int) -> str:
+def menu_text(sub: dict | None, ref_link: str, ref_count: int) -> str:
     lines = []
 
     # Блок подписки
@@ -77,7 +77,7 @@ def menu_text(name: str, sub: dict | None, ref_link: str, ref_count: int) -> str
         auto_icon = "✅" if sub.get("auto_renew") else "❌"
         lines.append(
             f'<tg-emoji emoji-id="5350404270032166927">🏠</tg-emoji> <b>Подписка</b>\n'
-            f"├ <b>Осталось:</b> {days_left} д.\n"
+            f"├ <b>Осталось дней:</b> {days_left} д.\n"
             f"╰ <b>Автопродление:</b> {auto_icon}"
         )
     else:
@@ -87,7 +87,7 @@ def menu_text(name: str, sub: dict | None, ref_link: str, ref_count: int) -> str
     lines.append(
         f'\n<tg-emoji emoji-id="5258513401784573443">👥</tg-emoji> <b>Рефералы</b>\n'
         f"├ <b>Приглашено</b>: {ref_count}\n"
-        f"├ <b>Бонус:</b> +{REFERRAL_BONUS_DAYS} дн. за друга\n"
+        f"├ <b>Бонус:</b> +{REFERRAL_BONUS_DAYS} дней за друга\n"
         f"╰ <code>{ref_link}</code>"
     )
 

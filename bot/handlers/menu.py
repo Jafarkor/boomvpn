@@ -6,7 +6,7 @@ import logging
 
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto
 
 from bot.database.subscriptions import get_active_subscription
 from bot.database.users import get_referral_count
@@ -26,7 +26,6 @@ async def _build_menu(user_id: int, bot_username: str) -> tuple[str, object]:
     sub = await get_active_subscription(user_id)
     ref_count = await get_referral_count(user_id)
     text = menu_text(
-        name="",  # имя подставляется в хэндлере
         sub=sub,
         ref_link=_ref_link(bot_username, user_id),
         ref_count=ref_count,
@@ -42,13 +41,13 @@ async def cmd_menu(message: Message) -> None:
     ref_count = await get_referral_count(message.from_user.id)
 
     text = menu_text(
-        name=message.from_user.first_name,
         sub=sub,
         ref_link=_ref_link(bot_info.username, message.from_user.id),
         ref_count=ref_count,
     )
     kb = menu_kb_with_sub() if sub else menu_kb_no_sub()
-    await message.answer(text, reply_markup=kb)
+    photo = FSInputFile("media/menu.jpg")
+    await message.answer_photo(FSInputFile(photo), text, reply_markup=kb)
 
 
 @router.callback_query(F.data == "menu")
@@ -58,11 +57,13 @@ async def cb_menu(callback: CallbackQuery) -> None:
     ref_count = await get_referral_count(callback.from_user.id)
 
     text = menu_text(
-        name=callback.from_user.first_name,
         sub=sub,
         ref_link=_ref_link(bot_info.username, callback.from_user.id),
         ref_count=ref_count,
     )
     kb = menu_kb_with_sub() if sub else menu_kb_no_sub()
-    await callback.message.edit_text(text, reply_markup=kb)
+    photo = FSInputFile("media/menu.jpg")
+    await callback.message.edit_media(
+        media=InputMediaPhoto(media=photo, caption=text),
+        reply_markup=kb)
     await callback.answer()
