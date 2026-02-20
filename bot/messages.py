@@ -81,7 +81,7 @@ def menu_text(name: str, sub: dict | None, ref_link: str, ref_count: int) -> str
             f"└ <b>Автопродление:</b> {auto_icon}"
         )
     else:
-        lines.append("🏠 <b>Подписка</b>\n└ Не активна")
+        lines.append('<tg-emoji emoji-id="5350404270032166927">🏠</tg-emoji> <b>Подписка</b>\n└ Не активна')
 
     # Блок рефералов
     lines.append(
