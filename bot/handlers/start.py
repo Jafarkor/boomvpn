@@ -68,7 +68,7 @@ async def cmd_start(message: Message) -> None:
     else:
         await message.answer(welcome_new_no_sub(tg_user.first_name))
 
-    await message.answer(INSTRUCTION_TEXT, reply_markup=instruction_kb())
+    await message.answer(INSTRUCTION_TEXT, reply_markup=instruction_kb(), disable_web_page_preview=True)
 
     if referrer_id and referrer_id != tg_user.id:
         try:
