@@ -25,20 +25,28 @@ def _marzban_username(user_id: int) -> str:
 async def _ensure_marzban_user(username: str, days: int) -> None:
     """
     Создаёт пользователя в Marzban или продлевает срок если уже существует.
-    Единый fallback для gift и paid подписок.
+
+    ValueError (409 — пользователь уже есть) перехватываем и продлеваем.
+    Все остальные ошибки пробрасываем наверх.
     """
     try:
         await marzban.create_user(username, days=days)
-    except Exception as create_err:
-        logger.warning("create_user failed (%s), trying extend_user", create_err)
+    except ValueError:
+        # Пользователь уже создан в Marzban (например, после сбоя при предыдущей попытке)
+        logger.info("Marzban user '%s' exists, extending instead", username)
         await marzban.extend_user(username, days)
 
 
 async def create_gift_subscription(user_id: int) -> str:
     """
     Создаёт подарочную подписку на GIFT_DAYS дней.
+
     Возвращает ссылку подписки.
-    Исключение пробрасывается наверх — вызывающий код решает как реагировать.
+    Исключение пробрасывается наверх — вызывающий код решает, как реагировать.
+
+    Особенности подарочной подписки:
+      • auto_renew = False  — нет привязанного способа оплаты
+      • payment_method_id = None
     """
     username = _marzban_username(user_id)
 
@@ -47,6 +55,7 @@ async def create_gift_subscription(user_id: int) -> str:
         user_id=user_id,
         marzban_username=username,
         days=GIFT_DAYS,
+        auto_renew=False,
     )
 
     url = await marzban.get_subscription_url(username)
@@ -73,6 +82,7 @@ async def create_paid_subscription(
             user_id=user_id,
             marzban_username=username,
             payment_method_id=payment_method_id,
+            auto_renew=payment_method_id is not None,
         )
 
     url = await marzban.get_subscription_url(username)

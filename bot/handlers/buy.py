@@ -8,19 +8,19 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from yookassa import Payment as YkPayment
 
-from bot.config import PLAN_DAYS
 from bot.database.payments import update_payment_status
 from bot.keyboards.user import pay_kb, back_to_menu_kb
 from bot.messages import buy_text, payment_success_text, payment_fail_text
 from bot.services.payment import create_payment_link
 from bot.services.subscription import create_paid_subscription
+from bot.utils.media import edit_photo_page
 
 logger = logging.getLogger(__name__)
 router = Router()
 
 # user_id → yukassa_payment_id
 # Живёт в памяти процесса — достаточно для большинства случаев.
-# При перезапуске пользователь просто нажмёт "Купить" ещё раз.
+# При перезапуске пользователь просто нажмёт «Купить» ещё раз.
 _pending: dict[int, str] = {}
 
 
@@ -36,7 +36,12 @@ async def cb_buy(callback: CallbackQuery) -> None:
         return
 
     _pending[user_id] = payment_id
-    await callback.message.edit_text(buy_text(), reply_markup=pay_kb(url))
+    await edit_photo_page(
+        callback,
+        page="buy",
+        caption=buy_text(),
+        reply_markup=pay_kb(url),
+    )
     await callback.answer()
 
 
@@ -53,7 +58,12 @@ async def cb_check_payment(callback: CallbackQuery) -> None:
         yk_payment = YkPayment.find_one(payment_id)
     except Exception as exc:
         logger.error("YK payment check error: %s", exc)
-        await callback.message.edit_text(payment_fail_text(), reply_markup=back_to_menu_kb())
+        await edit_photo_page(
+            callback,
+            page="buy",
+            caption=payment_fail_text(),
+            reply_markup=back_to_menu_kb(),
+        )
         return
 
     if yk_payment.status == "succeeded":
@@ -67,21 +77,28 @@ async def cb_check_payment(callback: CallbackQuery) -> None:
 
         try:
             await create_paid_subscription(user_id, payment_method_id=method_id)
-            await callback.message.edit_text(
-                payment_success_text(), reply_markup=back_to_menu_kb()
+            await edit_photo_page(
+                callback,
+                page="menu",
+                caption=payment_success_text(),
+                reply_markup=back_to_menu_kb(),
             )
         except Exception as exc:
             logger.error("Subscription creation after payment failed: %s", exc)
-            await callback.message.edit_text(
+            await callback.message.answer(
                 "✅ Оплата принята, но произошла ошибка при создании подписки.\n"
                 "Напиши в поддержку — разберёмся.",
-                reply_markup=back_to_menu_kb(),
             )
 
     elif yk_payment.status in ("canceled", "cancelled"):
         _pending.pop(user_id, None)
         await update_payment_status(payment_id, "canceled")
-        await callback.message.edit_text(payment_fail_text(), reply_markup=back_to_menu_kb())
+        await edit_photo_page(
+            callback,
+            page="buy",
+            caption=payment_fail_text(),
+            reply_markup=back_to_menu_kb(),
+        )
 
     else:
         await callback.answer("Оплата ещё не подтверждена. Подожди немного.", show_alert=True)

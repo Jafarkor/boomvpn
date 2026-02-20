@@ -22,9 +22,9 @@ def menu_kb_no_sub() -> InlineKeyboardMarkup:
 def menu_kb_with_sub() -> InlineKeyboardMarkup:
     """Меню когда подписка активна."""
     kb = InlineKeyboardBuilder()
-    kb.button(text="🔗 Ссылка подписки", callback_data="get_sub_url")
-    kb.button(text="📖 Инструкция",      callback_data="instruction")
-    kb.button(text="⚙️ Настройки",       callback_data="settings")
+    kb.button(text="🔗 Ссылка подписки",  callback_data="get_sub_url")
+    kb.button(text="📖 Инструкция",       callback_data="instruction")
+    kb.button(text="⚙️ Настройки",        callback_data="settings")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -33,10 +33,10 @@ def menu_kb_with_sub() -> InlineKeyboardMarkup:
 
 def settings_kb(auto_renew: bool) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    auto_label = "Авто: вкл — выключить" if auto_renew else "Авто: выкл — включить"
-    kb.button(text=auto_label,            callback_data="toggle_renew")
-    kb.button(text="💳 Продлить вручную", callback_data="buy")
-    kb.button(text="← Назад",            callback_data="menu")
+    auto_label = "🔄 Авто: вкл  →  выключить" if auto_renew else "🔄 Авто: выкл  →  включить"
+    kb.button(text=auto_label,             callback_data="toggle_renew")
+    kb.button(text="💳 Продлить вручную",  callback_data="buy")
+    kb.button(text="← Назад",             callback_data="menu")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -46,8 +46,8 @@ def settings_kb(auto_renew: bool) -> InlineKeyboardMarkup:
 def pay_kb(payment_url: str) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     kb.button(text="💳 Оплатить через СБП", url=payment_url)
-    kb.button(text="✅ Проверить оплату",   callback_data="check_payment")
-    kb.button(text="✕ Отмена",             callback_data="menu")
+    kb.button(text="✅ Проверить оплату",    callback_data="check_payment")
+    kb.button(text="✕ Отмена",              callback_data="menu")
     kb.adjust(1)
     return kb.as_markup()
 

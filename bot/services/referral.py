@@ -50,6 +50,7 @@ async def _grant_subscription(referrer_id: int) -> None:
             marzban_username=username,
             payment_method_id=None,
             days=REFERRAL_BONUS_DAYS,
+            auto_renew=False,
         )
         logger.info("Referral: created %d-day subscription for user %s",
                     REFERRAL_BONUS_DAYS, referrer_id)

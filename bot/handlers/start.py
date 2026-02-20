@@ -3,8 +3,8 @@ handlers/start.py — обработка команды /start.
 
 Поток для нового пользователя:
   1. Регистрация в БД
-  2. Создание подписки в Marzban (блокирующий вызов)
-  3. Приветствие — отправляется ТОЛЬКО после успешного создания подписки
+  2. Создание подписки в Marzban + БД (блокирующий вызов)
+  3. Приветствие с URL подписки — отправляется ТОЛЬКО после успешного создания
   4. Инструкция по подключению
   5. Бонус пригласившему (если есть реферер)
 
@@ -20,7 +20,7 @@ from aiogram.types import Message
 
 from bot.database.users import get_user, register_user
 from bot.keyboards.user import instruction_kb, back_to_menu_kb
-from bot.messages import welcome_new, welcome_new_no_sub, welcome_back, INSTRUCTION_TEXT
+from bot.messages import welcome_new, welcome_new_no_sub, welcome_back, instruction_text
 from bot.services.referral import handle_referral
 from bot.services.subscription import create_gift_subscription
 
@@ -56,19 +56,23 @@ async def cmd_start(message: Message) -> None:
 
     # Создаём подписку ДО отправки приветствия.
     # Пользователь видит сообщение о подписке только если она реально создана.
-    sub_ok = False
+    sub_url: str | None = None
     try:
-        await create_gift_subscription(tg_user.id)
-        sub_ok = True
+        sub_url = await create_gift_subscription(tg_user.id)
+        logger.info("Gift subscription OK for user %s, url=%s", tg_user.id, sub_url)
     except Exception as exc:
         logger.error("Gift subscription failed for user %s: %s", tg_user.id, exc)
 
-    if sub_ok:
-        await message.answer(welcome_new(tg_user.first_name))
+    if sub_url:
+        await message.answer(welcome_new(tg_user.first_name, sub_url))
     else:
         await message.answer(welcome_new_no_sub(tg_user.first_name))
 
-    await message.answer(INSTRUCTION_TEXT, reply_markup=instruction_kb(), disable_web_page_preview=True)
+    await message.answer(
+        instruction_text(),
+        reply_markup=instruction_kb(),
+        disable_web_page_preview=True,
+    )
 
     if referrer_id and referrer_id != tg_user.id:
         try:

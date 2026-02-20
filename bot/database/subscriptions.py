@@ -19,6 +19,7 @@ async def create_subscription(
     marzban_username: str,
     payment_method_id: str | None = None,
     days: int | None = None,
+    auto_renew: bool = True,
 ) -> int:
     """Создаёт новую подписку. Возвращает id созданной записи."""
     total_days = days if days is not None else PLAN_DAYS
@@ -28,10 +29,10 @@ async def create_subscription(
             INSERT INTO subscriptions
                 (user_id, marzban_username, expires_at, is_active,
                  yukassa_payment_method_id, auto_renew)
-            VALUES ($1, $2, $3, TRUE, $4, TRUE)
+            VALUES ($1, $2, $3, TRUE, $4, $5)
             RETURNING id
         """,
-            user_id, marzban_username, expires_at, payment_method_id,
+            user_id, marzban_username, expires_at, payment_method_id, auto_renew,
         )
     return sub_id
 

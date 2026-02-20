@@ -67,14 +67,18 @@ class MarzbanClient:
     # ── Пользователи ──────────────────────────────────────────────────────────
 
     async def create_user(self, username: str, days: int) -> dict[str, Any]:
-        """Создаёт пользователя в Marzban и возвращает данные."""
+        """
+        Создаёт пользователя в Marzban и возвращает данные.
+
+        Важно: не передаём 'id' в proxies — Marzban генерирует UUID автоматически.
+        Передача null вместо UUID ломает подписку в некоторых версиях Marzban.
+        """
         expire_ts = int((datetime.utcnow() + timedelta(days=days)).timestamp())
         payload = {
             "username": username,
             "proxies": {
                 "vless": {
                     "flow": MARZBAN_FLOW,
-                    "id": None,
                 }
             },
             "inbounds": {"vless": [MARZBAN_INBOUND_TAG]},
@@ -87,8 +91,12 @@ class MarzbanClient:
         async with session.post(
             "/api/user", json=payload, headers=await self._headers()
         ) as resp:
+            if resp.status == 409:
+                raise ValueError(f"User '{username}' already exists in Marzban")
             resp.raise_for_status()
-            return await resp.json()
+            data = await resp.json()
+            logger.info("Marzban: created user '%s' for %d days", username, days)
+            return data
 
     async def extend_user(self, username: str, additional_days: int) -> None:
         """Продлевает подписку пользователя на additional_days дней."""
@@ -109,6 +117,7 @@ class MarzbanClient:
             headers=headers,
         ) as resp:
             resp.raise_for_status()
+            logger.info("Marzban: extended user '%s' by %d days", username, additional_days)
 
     async def get_subscription_url(self, username: str) -> str:
         """
