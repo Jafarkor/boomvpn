@@ -18,7 +18,7 @@ router = Router()
 
 
 def _ref_link(bot_username: str, user_id: int) -> str:
-    return f"https://t.me/{bot_username}?start=ref_{user_id}"
+    return f"t.me/{bot_username}?start=ref_{user_id}"
 
 
 async def _build_menu(user_id: int, bot_username: str) -> tuple[str, object]:
