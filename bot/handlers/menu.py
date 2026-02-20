@@ -6,7 +6,7 @@ import logging
 
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 
 from bot.database.subscriptions import get_active_subscription
 from bot.database.users import get_referral_count
@@ -46,8 +46,7 @@ async def cmd_menu(message: Message) -> None:
         ref_count=ref_count,
     )
     kb = menu_kb_with_sub() if sub else menu_kb_no_sub()
-    photo = FSInputFile("media/menu.jpg")
-    await message.answer_photo(FSInputFile(photo), text, reply_markup=kb)
+    await message.answer_photo(photo="media/menu.jpg", caption=text, reply_markup=kb)
 
 
 @router.callback_query(F.data == "menu")
@@ -62,8 +61,7 @@ async def cb_menu(callback: CallbackQuery) -> None:
         ref_count=ref_count,
     )
     kb = menu_kb_with_sub() if sub else menu_kb_no_sub()
-    photo = FSInputFile("media/menu.jpg")
     await callback.message.edit_media(
-        media=InputMediaPhoto(media=photo, caption=text),
+        media=InputMediaPhoto(media="media/menu.jpg", caption=text),
         reply_markup=kb)
     await callback.answer()
