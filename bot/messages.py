@@ -77,7 +77,7 @@ def menu_text(sub: dict | None, ref_link: str, ref_count: int) -> str:
         auto_icon = "✅" if sub.get("auto_renew") else "❌"
         lines.append(
             f'<tg-emoji emoji-id="5350404270032166927">🏠</tg-emoji> <b>Подписка</b>\n'
-            f"├ <b>Осталось дней:</b> {days_left} д.\n"
+            f"├ <b>Осталось дней:</b> {days_left}\n"
             f"╰ <b>Автопродление:</b> {auto_icon}"
         )
     else:
