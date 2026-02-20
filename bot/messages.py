@@ -78,7 +78,7 @@ def menu_text(name: str, sub: dict | None, ref_link: str, ref_count: int) -> str
         lines.append(
             f'<tg-emoji emoji-id="5350404270032166927">🏠</tg-emoji> <b>Подписка</b>\n'
             f"├ <b>Осталось:</b> {days_left} д.\n"
-            f"└ <b>Автопродление:</b> {auto_icon}"
+            f"╰ <b>Автопродление:</b> {auto_icon}"
         )
     else:
         lines.append('<tg-emoji emoji-id="5350404270032166927">🏠</tg-emoji> <b>Подписка</b>\n└ Не активна')
@@ -88,7 +88,7 @@ def menu_text(name: str, sub: dict | None, ref_link: str, ref_count: int) -> str
         f'\n<tg-emoji emoji-id="5258513401784573443">👥</tg-emoji> <b>Рефералы</b>\n'
         f"├ <b>Приглашено</b>: {ref_count}\n"
         f"├ <b>Бонус:</b> +{REFERRAL_BONUS_DAYS} дн. за друга\n"
-        f"└ <code>{ref_link}</code>"
+        f"╰ <code>{ref_link}</code>"
     )
 
     return "\n".join(lines)
