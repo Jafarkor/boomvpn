@@ -66,7 +66,7 @@ INSTRUCTION_TEXT = (
 # ── Главное меню ──────────────────────────────────────────────────────────────
 
 def menu_text(name: str, sub: dict | None, ref_link: str, ref_count: int) -> str:
-    lines = [f"👤 {name}\n"]
+    lines = []
 
     # Блок подписки
     if sub:
@@ -76,18 +76,18 @@ def menu_text(name: str, sub: dict | None, ref_link: str, ref_count: int) -> str
         days_left = max(0, (expires - datetime.utcnow()).days)
         auto_icon = "✅" if sub.get("auto_renew") else "❌"
         lines.append(
-            f"🏠 <b>Подписка</b>\n"
-            f"├ Осталось: {days_left} дн.\n"
-            f"└ Автопродление: {auto_icon}"
+            f'<tg-emoji emoji-id="5350404270032166927">🏠</tg-emoji> <b>Подписка</b>\n'
+            f"├ <b>Осталось:</b> {days_left} д.\n"
+            f"└ <b>Автопродление:</b> {auto_icon}"
         )
     else:
         lines.append("🏠 <b>Подписка</b>\n└ Не активна")
 
     # Блок рефералов
     lines.append(
-        f"\n👥 <b>Рефералы</b>\n"
-        f"├ Приглашено: {ref_count}\n"
-        f"├ Бонус: +{REFERRAL_BONUS_DAYS} дн. за друга\n"
+        f'\n<tg-emoji emoji-id="5258513401784573443">👥</tg-emoji> <b>Рефералы</b>\n'
+        f"├ <b>Приглашено</b>: {ref_count}\n"
+        f"├ <b>Бонус:</b> +{REFERRAL_BONUS_DAYS} дн. за друга\n"
         f"└ <code>{ref_link}</code>"
     )
 
