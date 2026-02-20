@@ -22,19 +22,34 @@ def _marzban_username(user_id: int) -> str:
     return f"tg_{user_id}"
 
 
+async def _ensure_marzban_user(username: str, days: int) -> None:
+    """
+    Создаёт пользователя в Marzban или продлевает срок если уже существует.
+    Единый fallback для gift и paid подписок.
+    """
+    try:
+        await marzban.create_user(username, days=days)
+    except Exception as create_err:
+        logger.warning("create_user failed (%s), trying extend_user", create_err)
+        await marzban.extend_user(username, days)
+
+
 async def create_gift_subscription(user_id: int) -> str:
     """
     Создаёт подарочную подписку на GIFT_DAYS дней.
     Возвращает ссылку подписки.
+    Исключение пробрасывается наверх — вызывающий код решает как реагировать.
     """
     username = _marzban_username(user_id)
-    mz_user = await marzban.create_user(username, days=GIFT_DAYS)
+
+    await _ensure_marzban_user(username, days=GIFT_DAYS)
     await create_subscription(
         user_id=user_id,
-        marzban_username=mz_user["username"],
+        marzban_username=username,
         days=GIFT_DAYS,
     )
-    url = await marzban.get_subscription_url(mz_user["username"])
+
+    url = await marzban.get_subscription_url(username)
     logger.info("Gift subscription created for user %s (%d days)", user_id, GIFT_DAYS)
     return url
 
@@ -53,13 +68,7 @@ async def create_paid_subscription(
         await extend_subscription(existing["id"], days=PLAN_DAYS)
         await marzban.extend_user(username, PLAN_DAYS)
     else:
-        try:
-            mz_user = await marzban.create_user(username, days=PLAN_DAYS)
-            username = mz_user["username"]
-        except Exception:
-            # Пользователь уже есть в Marzban — продлеваем без пересоздания
-            await marzban.extend_user(username, PLAN_DAYS)
-
+        await _ensure_marzban_user(username, days=PLAN_DAYS)
         await create_subscription(
             user_id=user_id,
             marzban_username=username,

@@ -36,7 +36,6 @@ async def cb_instruction(callback: CallbackQuery) -> None:
     await callback.message.edit_text(
         INSTRUCTION_TEXT,
         reply_markup=back_to_menu_kb(),
-        disable_web_page_preview=True
     )
     await callback.answer()
 

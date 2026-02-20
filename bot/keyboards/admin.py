@@ -27,5 +27,5 @@ def confirm_broadcast_kb() -> InlineKeyboardMarkup:
 
 def admin_back_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text="← Назад", callback_data="adm_menu")
+    kb.button(text="◀️ Назад", callback_data="adm_menu")
     return kb.as_markup()

@@ -2,13 +2,14 @@
 handlers/start.py — обработка команды /start.
 
 Поток для нового пользователя:
-  1. Приветствие с сообщением о подарочной подписке
-  2. Создание реальной подписки в Marzban
-  3. Инструкция по подключению
-  4. Начисление бонуса пригласившему (если есть)
+  1. Регистрация в БД
+  2. Создание подписки в Marzban (блокирующий вызов)
+  3. Приветствие — отправляется ТОЛЬКО после успешного создания подписки
+  4. Инструкция по подключению
+  5. Бонус пригласившему (если есть реферер)
 
-Поток для вернувшегося пользователя:
-  → Приветствие и кнопка в меню
+Поток для вернувшегося:
+  → Приветствие с кнопкой в меню
 """
 
 import logging
@@ -19,7 +20,7 @@ from aiogram.types import Message
 
 from bot.database.users import get_user, register_user
 from bot.keyboards.user import instruction_kb, back_to_menu_kb
-from bot.messages import welcome_new, welcome_back, INSTRUCTION_TEXT
+from bot.messages import welcome_new, welcome_new_no_sub, welcome_back, INSTRUCTION_TEXT
 from bot.services.referral import handle_referral
 from bot.services.subscription import create_gift_subscription
 
@@ -50,18 +51,24 @@ async def cmd_start(message: Message) -> None:
 
     is_new = await register_user(tg_user, referred_by=referrer_id)
     if not is_new:
-        # Гонка записей — пользователь уже существует
         await message.answer(welcome_back(tg_user.first_name), reply_markup=back_to_menu_kb())
         return
 
-    await message.answer(welcome_new(tg_user.first_name))
-
+    # Создаём подписку ДО отправки приветствия.
+    # Пользователь видит сообщение о подписке только если она реально создана.
+    sub_ok = False
     try:
         await create_gift_subscription(tg_user.id)
+        sub_ok = True
     except Exception as exc:
-        logger.error("Gift subscription failed for %s: %s", tg_user.id, exc)
+        logger.error("Gift subscription failed for user %s: %s", tg_user.id, exc)
 
-    await message.answer(INSTRUCTION_TEXT, reply_markup=instruction_kb(), disable_web_page_preview=True)
+    if sub_ok:
+        await message.answer(welcome_new(tg_user.first_name))
+    else:
+        await message.answer(welcome_new_no_sub(tg_user.first_name))
+
+    await message.answer(INSTRUCTION_TEXT, reply_markup=instruction_kb())
 
     if referrer_id and referrer_id != tg_user.id:
         try:
