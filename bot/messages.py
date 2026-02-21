@@ -85,7 +85,7 @@ def menu_text(sub: dict | None, ref_link: str, ref_count: int) -> str:
 
     # Блок рефералов
     lines.append(
-        f'\n<tg-emoji emoji-id="5258513401784573443">👥</tg-emoji> <b>Рефералы</b>\n'
+        f'\n<tg-emoji emoji-id="6001526766714227911">👥</tg-emoji> <b>Рефералы</b>\n'
         f"├ <b>Приглашено:</b> {ref_count}\n"
         f"├ <b>Бонус:</b> +{REFERRAL_BONUS_DAYS} дней за друга\n"
         f"╰ <code>{ref_link}</code>"
