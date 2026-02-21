@@ -31,7 +31,7 @@ def menu_kb_with_sub() -> InlineKeyboardMarkup:
     kb.button(
         text="Инструкция",
         callback_data="instruction",
-        icon_custom_emoji_id="5974193375799152241",
+        icon_custom_emoji_id="5258503720928288433",
     )
     kb.button(
         text="Настройки",
