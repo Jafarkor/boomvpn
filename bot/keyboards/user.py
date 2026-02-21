@@ -39,9 +39,7 @@ def menu_kb_with_sub() -> InlineKeyboardMarkup:
         icon_custom_emoji_id="5258096772776991776",
     )
 
-    # 1-я строка — 1 кнопка, 2-я строка — 2 кнопки
-    kb.adjust(1, 2)
-
+    kb.adjust(1)
     return kb.as_markup()
 
 
