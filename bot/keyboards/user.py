@@ -14,7 +14,9 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 def menu_kb_no_sub() -> InlineKeyboardMarkup:
     """Меню когда подписка неактивна."""
     kb = InlineKeyboardBuilder()
-    kb.button(text="💳 Купить подписку", callback_data="buy")
+    kb.button(text="Купить подписку",
+              callback_data="buy",
+              icon_custom_emoji_id="5445353829304387411",)
     kb.adjust(1)
     return kb.as_markup()
 

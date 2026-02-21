@@ -86,7 +86,7 @@ async def cb_check_payment(callback: CallbackQuery) -> None:
         except Exception as exc:
             logger.error("Subscription creation after payment failed: %s", exc)
             await callback.message.answer(
-                "✅ Оплата принята, но произошла ошибка при создании подписки.\n"
+                "<tg-emoji emoji-id=\"5411197345968701560\">✅</tg-emoji> Оплата принята, но произошла ошибка при создании подписки.\n"
                 "Напиши в поддержку — разберёмся.",
             )
 
@@ -101,4 +101,4 @@ async def cb_check_payment(callback: CallbackQuery) -> None:
         )
 
     else:
-        await callback.answer("Оплата ещё не подтверждена. Подожди немного.", show_alert=True)
+        await callback.answer("Оплата ещё не подтверждена. Подождите немного.", show_alert=True)
