@@ -39,30 +39,26 @@ def welcome_back(name: str) -> str:
 
 def instruction_text() -> str:
     return (
-        "📱 <b>Как подключить VPN</b>\n\n"
+        "<tg-emoji emoji-id=\"5877465816030515018\">🔗</tg-emoji> "
+        "<b>В боте нажми на \"VPN-ссылка\" и скопируй, нажав на неё.</b>\n\n"
+        "<b>Затем, в зависимости от устройства:</b>\n\n"
 
-        "🍎 <b>iPhone / iPad</b> — приложение <b>Streisand</b>\n"
-        "1. Скачай <b>Streisand</b> в App Store\n"
-        "2. Нажми <b>«🔗 Ссылка подписки»</b> → скопируй\n"
-        "3. В Streisand: <b>«+»</b> → <b>«Импорт из буфера»</b>\n\n"
+        "<tg-emoji emoji-id=\"5449665821850739918\">🍏</tg-emoji> "
+        "<b>iPhone / iPad / Mac</b>\n"
+        "• Скачай <b>Streisand</b> в App Store\n"
+        "• В Streisand: <b>«+» → «Импорт из буфера»</b>\n\n"
 
-        "🤖 <b>Android</b> — приложение <b>v2rayNG</b>\n"
-        "1. Скачай <b>v2rayNG</b> в Google Play\n"
-        "2. Нажми <b>«🔗 Ссылка подписки»</b> → скопируй\n"
-        "3. В v2rayNG: <b>«☰»</b> → <b>«Добавить»</b> → <b>«Импорт подписки»</b>\n\n"
+        "<tg-emoji emoji-id=\"5398055016625876216\">🤖</tg-emoji> "
+        "<b>Android</b>\n"
+        "• Скачай <b>v2rayNG</b> в Google Play\n"
+        "• В v2rayNG: <b>«☰» → «Добавить» → «Импорт подписки»</b>\n\n"
 
-        "💻 <b>Windows</b> — приложение <b>Nekoray</b>\n"
-        "1. Скачай <b>Nekoray</b> с github.com/MatsuriDayo/nekoray\n"
-        "2. Нажми <b>«🔗 Ссылка подписки»</b> → скопируй\n"
-        "3. В Nekoray: <b>«Сервер»</b> → <b>«Добавить по URL»</b>\n\n"
-
-        "🍏 <b>Mac</b> — приложение <b>FoXray</b>\n"
-        "1. Скачай <b>FoXray</b> в Mac App Store\n"
-        "2. Нажми <b>«🔗 Ссылка подписки»</b> → скопируй\n"
-        "3. В FoXray: <b>«+»</b> → <b>«Из буфера обмена»</b>\n\n"
-
-        "💡 <i>Ссылка обновляется автоматически — переустанавливать ничего не нужно.</i>"
+        "<tg-emoji emoji-id=\"5465513856035992056\">💻</tg-emoji> "
+        "<b>Windows</b>\n"
+        "• Скачай <b>Nekoray</b> с github.com/MatsuriDayo/nekoray\n"
+        "• В Nekoray: <b>«Сервер» → «Добавить по URL»</b>\n\n"
     )
+
 
 
 # ── Главное меню ──────────────────────────────────────────────────────────────
@@ -76,7 +72,7 @@ def menu_text(sub: dict | None, ref_link: str, ref_count: int) -> str:
         if isinstance(expires, str):
             expires = datetime.fromisoformat(expires)
         days_left = max(0, (expires - datetime.utcnow()).days)
-        auto_icon = '<tg-emoji emoji-id="5429501538806548545">✅</tg-emoji>' if sub.get("auto_renew") else '<tg-emoji emoji-id="5416076321442777828">❌</tg-emoji>'
+        auto_icon = '<tg-emoji emoji-id="5411197345968701560">✅</tg-emoji>' if sub.get("auto_renew") else '<tg-emoji emoji-id="5416076321442777828">❌</tg-emoji>'
         lines.append(
             f'<tg-emoji emoji-id="5350404270032166927">🏠</tg-emoji> <b>Подписка</b>\n'
             f"├ <b>Осталось дней:</b> {days_left}\n"
@@ -130,7 +126,6 @@ def settings_text(sub: dict) -> str:
 
 def sub_url_text(url: str) -> str:
     return (
-        "🔗 <b>Ссылка подписки</b>\n\n"
         "Нажми на ссылку — она скопируется в буфер обмена.\n"
         "Затем вставь её в своё VPN‑приложение.\n\n"
         f"<code>{url}</code>\n\n"
