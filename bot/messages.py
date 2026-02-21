@@ -76,7 +76,7 @@ def menu_text(sub: dict | None, ref_link: str, ref_count: int) -> str:
         if isinstance(expires, str):
             expires = datetime.fromisoformat(expires)
         days_left = max(0, (expires - datetime.utcnow()).days)
-        auto_icon = "✅" if sub.get("auto_renew") else "❌"
+        auto_icon = '<tg-emoji emoji-id="5429501538806548545">✅</tg-emoji>' if sub.get("auto_renew") else '<tg-emoji emoji-id="5416076321442777828">❌</tg-emoji>'
         lines.append(
             f'<tg-emoji emoji-id="5350404270032166927">🏠</tg-emoji> <b>Подписка</b>\n'
             f"├ <b>Осталось дней:</b> {days_left}\n"
@@ -134,8 +134,7 @@ def sub_url_text(url: str) -> str:
         "Нажми на ссылку — она скопируется в буфер обмена.\n"
         "Затем вставь её в своё VPN‑приложение.\n\n"
         f"<code>{url}</code>\n\n"
-        "<i>Ссылка действует постоянно и обновляется автоматически.\n"
-        "Если VPN перестал работать — просто открой меню и обнови ссылку.</i>"
+        "<i>Если VPN перестал работать — просто открой меню и обнови ссылку.</i>"
     )
 
 
@@ -145,12 +144,10 @@ def buy_text() -> str:
     return (
         "💳 <b>Оформление подписки</b>\n\n"
 
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
         f"📦  <b>{PLAN_NAME}</b>\n"
         f"├ Срок: <b>{PLAN_DAYS} дней</b>\n"
         f"├ Цена: <b>{PLAN_PRICE} ₽</b>\n"
         "╰ Оплата: <b>СБП</b> — быстро, без комиссии\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
         "После оплаты нажми <b>«✅ Проверить оплату»</b> — "
         "подписка активируется мгновенно."
     )
