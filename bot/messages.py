@@ -134,20 +134,19 @@ def sub_url_text(url: str) -> str:
 
 def buy_text() -> str:
     return (
-        "💳 <b>Оформление подписки</b>\n\n"
+        f"<b>Быстрый и безопасный VPN <tg-emoji emoji-id=\"5372917041193828849\">🚀</tg-emoji></b>\n\n"
 
-        f"📦  <b>{PLAN_NAME}</b>\n"
         f"├ Срок: <b>{PLAN_DAYS} дней</b>\n"
-        f"├ Цена: <b>{PLAN_PRICE} ₽</b>\n"
-        "╰ Оплата: <b>СБП</b> — быстро, без комиссии\n"
-        "После оплаты нажми <b>«✅ Проверить оплату»</b> — "
+        f"╰ Цена: <b>{PLAN_PRICE} ₽</b>\n\n"
+
+        "После оплаты нажми <b>«<tg-emoji emoji-id=\"5411197345968701560\"></tg-emoji>  Проверить оплату»</b> — "
         "подписка активируется мгновенно."
     )
 
 
 def payment_success_text() -> str:
     return (
-        "✅ <b>Оплата прошла!</b>\n\n"
+        "<tg-emoji emoji-id=\"5411197345968701560\">✅</tg-emoji> <b>Оплата прошла!</b>\n\n"
         f"Подписка активна на <b>{PLAN_DAYS} дней</b>.\n\n"
         "Нажми <b>«🔗 Ссылка подписки»</b> в меню и вставь её в VPN‑приложение."
     )
@@ -164,7 +163,7 @@ def payment_fail_text() -> str:
 
 def referral_reward_text(days: int) -> str:
     return (
-        f"🎉 <b>Твой друг зарегистрировался!</b>\n\n"
+        f"<tg-emoji emoji-id=\"5436040291507247633\">🎉</tg-emoji> <b>Твой друг зарегистрировался!</b>\n\n"
         f"Тебе начислено <b>+{days} дней</b> подписки."
     )
 
