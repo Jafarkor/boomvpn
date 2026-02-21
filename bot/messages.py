@@ -102,18 +102,19 @@ def settings_text(sub: dict) -> str:
         expires = datetime.fromisoformat(expires)
     days_left = max(0, (expires - datetime.utcnow()).days)
     auto = sub.get("auto_renew", False)
-    auto_icon = "✅ Включено" if auto else "❌ Выключено"
+    auto_icon = '<tg-emoji emoji-id="5411197345968701560">✅</tg-emoji>' if auto else '<tg-emoji emoji-id="5416076321442777828">❌</tg-emoji>'
 
     return (
-        "📅  <b>Срок действия</b>\n"
-        f"└ Осталось <b>{days_left} дн.</b>\n\n"
+        f"<tg-emoji emoji-id=\"5217604963571621845\">📅</tg-emoji> "
+        f"Осталось дней: <b>{days_left}</b>\n\n"
 
-        "🔄  <b>Автопродление</b>\n"
-        f"└ {auto_icon}\n"
+        f"<tg-emoji emoji-id=\"5258419835922030550\">🔄</tg-emoji> "
+        f"Автопродление: <b>{auto_icon}</b>\n\n"
+
         f"<i>{'Подписка продлится автоматически — вручную ничего делать не нужно.' if auto else 'Подписка не продлится автоматически. Включи автопродление или продли вручную.'}</i>\n\n"
 
-        "💳  <b>Тариф</b>\n"
-        f"└ {PLAN_NAME} — <b>{PLAN_PRICE} ₽</b> / {PLAN_DAYS} дней"
+        f"<tg-emoji emoji-id=\"6244241334320762892\"></tg-emoji> "
+        f"{PLAN_NAME} — <b>{PLAN_PRICE} ₽</b> / месяц"
     )
 
 
@@ -155,7 +156,7 @@ def payment_success_text() -> str:
 
 def payment_fail_text() -> str:
     return (
-        "❌ <b>Оплата не найдена.</b>\n\n"
+        "<tg-emoji emoji-id=\"5416076321442777828\">❌</tg-emoji> <b>Оплата не найдена.</b>\n\n"
         "Попробуй чуть позже или начни заново через меню."
     )
 
