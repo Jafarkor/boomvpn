@@ -4,299 +4,442 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VPN Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-/* ── Tokens ── */
-:root{
-  --bg:#0d0f18;--s1:#141824;--s2:#1c2133;--b:#252b42;
-  --acc:#7c6ef5;--grn:#34d399;--ylw:#fbbf24;--red:#f87171;
-  --txt:#e2e8f0;--dim:#64748b;--r:10px;
-  --sidebar:215px;
+/* ── Design tokens ── */
+:root {
+  --bg:    #09090e;
+  --s1:    #0f1117;
+  --s2:    #161820;
+  --s3:    #1c1f2b;
+  --b:     #21253a;
+  --b2:    #2a2f45;
+  --acc:   #6366f1;
+  --acc2:  rgba(99,102,241,.14);
+  --grn:   #10b981;
+  --grn2:  rgba(16,185,129,.12);
+  --ylw:   #f59e0b;
+  --ylw2:  rgba(245,158,11,.12);
+  --red:   #ef4444;
+  --red2:  rgba(239,68,68,.12);
+  --txt:   #e8eaf0;
+  --txt2:  #9197ae;
+  --txt3:  #555e7a;
+  --r:     10px;
+  --r2:    14px;
+  --side:  220px;
+  --trans: .18s ease;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--txt);font:14px/1.5 'Inter','Segoe UI',system-ui,sans-serif}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--txt);
+  font: 13.5px/1.55 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 8px; }
 
 /* ── Login ── */
-#login{display:flex;align-items:center;justify-content:center;height:100vh;
-  background:radial-gradient(ellipse 80% 60% at 50% -10%,#1e1b4b,var(--bg))}
-.lcard{background:var(--s1);border:1px solid var(--b);border-radius:18px;
-  padding:40px 32px;width:min(360px,92vw);text-align:center;box-shadow:0 32px 64px rgba(0,0,0,.5)}
-.lcard h1{font-size:22px;font-weight:700;margin:12px 0 6px}
-.lcard p{color:var(--dim);font-size:13px;margin-bottom:28px}
-.linput{width:100%;padding:12px 14px;background:var(--s2);border:1px solid var(--b);
-  border-radius:8px;color:var(--txt);font-size:15px;outline:none;margin-bottom:12px;transition:.2s}
-.linput:focus{border-color:var(--acc)}
-.lbtn{width:100%;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:8px;
-  font-size:15px;font-weight:600;cursor:pointer;transition:.2s}
-.lbtn:hover{opacity:.85}
-.lerr{color:var(--red);font-size:12px;margin-top:10px;min-height:18px}
+#login {
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh;
+  background: radial-gradient(ellipse 70% 50% at 50% -5%, #1a1960 0%, var(--bg) 70%);
+}
+.lcard {
+  background: var(--s1); border: 1px solid var(--b);
+  border-radius: 20px; padding: 44px 36px;
+  width: min(380px, 92vw); text-align: center;
+  box-shadow: 0 40px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(99,102,241,.08);
+}
+.lcard-ico { font-size: 46px; line-height: 1; margin-bottom: 16px; }
+.lcard h1 { font-size: 21px; font-weight: 700; margin-bottom: 6px; }
+.lcard p  { color: var(--txt2); font-size: 13px; margin-bottom: 28px; }
+.linput {
+  width: 100%; padding: 12px 14px;
+  background: var(--s2); border: 1px solid var(--b);
+  border-radius: 9px; color: var(--txt); font: inherit;
+  font-size: 14px; outline: none; margin-bottom: 10px;
+  transition: border-color var(--trans);
+}
+.linput:focus { border-color: var(--acc); }
+.lbtn {
+  width: 100%; padding: 13px; background: var(--acc);
+  color: #fff; border: none; border-radius: 9px;
+  font: 600 14px 'Inter', system-ui;
+  cursor: pointer; transition: opacity var(--trans), transform var(--trans);
+}
+.lbtn:hover { opacity: .88; }
+.lbtn:active { transform: scale(.99); }
+.lerr { color: var(--red); font-size: 12px; margin-top: 10px; min-height: 18px; }
 
 /* ── App shell ── */
-#app{display:none;height:100vh;overflow:hidden}
-.shell{display:flex;height:100vh;overflow:hidden}
+#app { display: none; height: 100vh; overflow: hidden; }
+.shell { display: flex; height: 100vh; overflow: hidden; }
 
 /* ── Sidebar ── */
-.side{
-  width:var(--sidebar);flex-shrink:0;background:var(--s1);border-right:1px solid var(--b);
-  display:flex;flex-direction:column;transition:transform .25s;z-index:50;
+.side {
+  width: var(--side); flex-shrink: 0;
+  background: var(--s1); border-right: 1px solid var(--b);
+  display: flex; flex-direction: column;
+  transition: transform .24s ease; z-index: 50;
 }
-.brand{padding:18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--b)}
-.brand-icon{font-size:24px;flex-shrink:0}
-.brand-name{font-size:15px;font-weight:700;white-space:nowrap}
-.brand-sub{font-size:10px;color:var(--dim);letter-spacing:.05em}
-nav{flex:1;padding:8px;overflow-y:auto}
-.nav-sec{font-size:10px;color:var(--dim);text-transform:uppercase;
-  letter-spacing:.1em;padding:12px 8px 4px;white-space:nowrap}
-.ni{display:flex;align-items:center;gap:8px;padding:10px 10px;border-radius:7px;cursor:pointer;
-  color:var(--dim);font-size:13px;font-weight:500;transition:.15s;margin-bottom:1px;white-space:nowrap}
-.ni:hover{background:var(--s2);color:var(--txt)}
-.ni.on{background:rgba(124,110,245,.14);color:var(--acc)}
-.ni .ic{width:20px;text-align:center;font-size:15px;flex-shrink:0}
-.side-foot{padding:12px;border-top:1px solid var(--b);flex-shrink:0}
-.out-btn{width:100%;padding:9px;background:0;border:1px solid var(--b);border-radius:7px;
-  color:var(--dim);cursor:pointer;font-size:12px;transition:.15s}
-.out-btn:hover{border-color:var(--red);color:var(--red)}
-
-/* ── Mobile sidebar overlay ── */
-.side-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40}
-
-/* ── Main area ── */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-.topbar{
-  padding:12px 16px;background:var(--s1);border-bottom:1px solid var(--b);
-  display:flex;align-items:center;gap:12px;flex-shrink:0;
+.brand {
+  padding: 20px 16px 16px;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--b);
 }
-.menu-btn{display:none;background:none;border:none;color:var(--txt);
-  font-size:20px;cursor:pointer;padding:2px 6px;line-height:1;flex-shrink:0}
-.topbar h1{font-size:16px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.online{background:rgba(52,211,153,.12);color:var(--grn);border-radius:20px;
-  padding:3px 10px;font-size:11px;font-weight:600;flex-shrink:0;white-space:nowrap}
-.view{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+.brand-ico  { font-size: 26px; flex-shrink: 0; }
+.brand-name { font-size: 14px; font-weight: 700; }
+.brand-sub  { font-size: 9px; color: var(--txt3); letter-spacing: .1em; text-transform: uppercase; margin-top: 1px; }
+nav { flex: 1; padding: 10px 8px; overflow-y: auto; }
+.nav-sec {
+  font-size: 9px; color: var(--txt3); text-transform: uppercase;
+  letter-spacing: .1em; padding: 14px 9px 5px;
+}
+.ni {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 10px; border-radius: 8px;
+  cursor: pointer; color: var(--txt2);
+  font-size: 13px; font-weight: 500;
+  transition: background var(--trans), color var(--trans);
+  margin-bottom: 1px; white-space: nowrap;
+}
+.ni:hover { background: var(--s2); color: var(--txt); }
+.ni.on    { background: var(--acc2); color: var(--acc); }
+.ni .ic   { width: 18px; text-align: center; font-size: 14px; flex-shrink: 0; }
+.side-foot { padding: 12px 10px; border-top: 1px solid var(--b); }
+.out-btn {
+  width: 100%; padding: 9px 12px; border-radius: 8px;
+  background: transparent; border: 1px solid var(--b);
+  color: var(--txt2); cursor: pointer;
+  font: 12px 'Inter', system-ui;
+  transition: border-color var(--trans), color var(--trans);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.out-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ── Mobile overlay ── */
+.side-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 40; }
+
+/* ── Main ── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.topbar {
+  padding: 11px 18px;
+  background: var(--s1); border-bottom: 1px solid var(--b);
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.menu-btn {
+  display: none; background: none; border: none;
+  color: var(--txt); font-size: 18px; cursor: pointer;
+  padding: 2px 6px; line-height: 1; flex-shrink: 0;
+}
+.topbar h1 { font-size: 15px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status-dot {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--grn2); color: var(--grn);
+  border-radius: 20px; padding: 4px 11px;
+  font-size: 11px; font-weight: 600; flex-shrink: 0;
+}
+.status-dot::before { content: ''; width: 6px; height: 6px; background: var(--grn); border-radius: 50%; }
+.view { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
 
 /* ── Stats grid ── */
-.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px}
-.sc{background:var(--s1);border:1px solid var(--b);border-radius:var(--r);padding:16px;position:relative;overflow:hidden}
-.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-.sc.p::after{background:var(--acc)}.sc.g::after{background:var(--grn)}
-.sc.y::after{background:var(--ylw)}.sc.r::after{background:var(--red)}
-.sl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
-.sv{font-size:24px;font-weight:700;margin-bottom:2px}
-.ss{font-size:11px;color:var(--dim)}
+.sg { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.sc {
+  background: var(--s1); border: 1px solid var(--b);
+  border-radius: var(--r2); padding: 18px 16px;
+  position: relative; overflow: hidden;
+  transition: border-color var(--trans);
+}
+.sc:hover { border-color: var(--b2); }
+.sc::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px; border-radius: 2px 2px 0 0;
+}
+.sc.p::before { background: var(--acc); }
+.sc.g::before { background: var(--grn); }
+.sc.y::before { background: var(--ylw); }
+.sc.r::before { background: var(--red); }
+.sc-emoji { font-size: 22px; margin-bottom: 10px; line-height: 1; }
+.sl { font-size: 10px; color: var(--txt3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
+.sv { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 3px; }
+.ss { font-size: 11px; color: var(--txt2); }
 
 /* ── Charts ── */
-.cg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.cc{background:var(--s1);border:1px solid var(--b);border-radius:var(--r);padding:16px}
-.ct{font-size:12px;font-weight:600;color:var(--dim);margin-bottom:12px}
+.cg { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+.cc { background: var(--s1); border: 1px solid var(--b); border-radius: var(--r2); padding: 18px; }
+.ct { font-size: 12px; font-weight: 600; color: var(--txt2); margin-bottom: 14px; }
 
-/* ── Card ── */
-.tc{background:var(--s1);border:1px solid var(--b);border-radius:var(--r);overflow:hidden}
-
-/* ── Toolbar ── */
-.tb{padding:12px 14px;border-bottom:1px solid var(--b);display:flex;flex-direction:column;gap:10px}
-.tb-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.tb-top h2{font-size:14px;font-weight:600;white-space:nowrap}
-.tb-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* ── Table card ── */
+.tc { background: var(--s1); border: 1px solid var(--b); border-radius: var(--r2); overflow: hidden; }
+.tb { padding: 14px 16px; border-bottom: 1px solid var(--b); display: flex; flex-direction: column; gap: 10px; }
+.tb-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tb-top h2 { font-size: 14px; font-weight: 600; white-space: nowrap; }
+.tb-count { color: var(--txt3); font-size: 13px; font-weight: 400; margin-left: 6px; }
+.tb-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 /* ── Filter panel ── */
-.fp{background:var(--s2);border-radius:8px;padding:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
-.fg{display:flex;flex-direction:column;gap:4px;min-width:0}
-.fg label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
-.date-range{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.date-range span{font-size:11px;color:var(--dim)}
+.fp {
+  background: var(--s2); border: 1px solid var(--b); border-radius: var(--r);
+  padding: 14px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+}
+.fg { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.fg label { font-size: 10px; color: var(--txt3); text-transform: uppercase; letter-spacing: .07em; }
+.date-range { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.date-range span { font-size: 11px; color: var(--txt3); }
 
 /* ── Form controls ── */
-.si{background:var(--s2);border:1px solid var(--b);border-radius:7px;
-  padding:8px 11px;color:var(--txt);font-size:13px;outline:none;transition:.2s;
-  -webkit-appearance:none}
-.si:focus{border-color:var(--acc)}
-.di{background:var(--s2);border:1px solid var(--b);border-radius:7px;
-  padding:7px 10px;color:var(--txt);font-size:12px;outline:none;cursor:pointer;
-  transition:.2s;-webkit-appearance:none}
-.di:focus{border-color:var(--acc)}
-.di::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:pointer}
-.fsel{background:var(--s2);border:1px solid var(--b);border-radius:7px;
-  padding:8px 10px;color:var(--txt);font-size:13px;outline:none;cursor:pointer;
-  -webkit-appearance:none}
-.fsel:focus{border-color:var(--acc)}
+.si, .fsel, .di {
+  background: var(--s2); border: 1px solid var(--b);
+  border-radius: 8px; color: var(--txt); font: inherit;
+  outline: none; transition: border-color var(--trans); -webkit-appearance: none;
+}
+.si   { padding: 8px 11px; font-size: 13px; }
+.fsel { padding: 8px 11px; font-size: 13px; cursor: pointer; }
+.di   { padding: 7px 10px; font-size: 12px; cursor: pointer; }
+.si:focus, .fsel:focus, .di:focus { border-color: var(--acc); }
+.di::-webkit-calendar-picker-indicator { filter: invert(.4); cursor: pointer; }
 
 /* ── Buttons ── */
-.btn{padding:7px 13px;border-radius:7px;border:none;cursor:pointer;font-size:13px;
-  font-weight:600;transition:.15s;display:inline-flex;align-items:center;
-  gap:5px;white-space:nowrap;-webkit-tap-highlight-color:transparent}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-acc{background:rgba(124,110,245,.2);color:var(--acc);border:1px solid rgba(124,110,245,.3)}
-.btn-acc:hover:not(:disabled){background:rgba(124,110,245,.32)}
-.btn-grn{background:rgba(52,211,153,.15);color:var(--grn);border:1px solid rgba(52,211,153,.3)}
-.btn-grn:hover:not(:disabled){background:rgba(52,211,153,.28)}
-.btn-red{background:rgba(248,113,113,.13);color:var(--red);border:1px solid rgba(248,113,113,.3)}
-.btn-red:hover:not(:disabled){background:rgba(248,113,113,.25)}
-.btn-d{background:0;color:var(--dim);border:1px solid var(--b)}
-.btn-d:hover:not(:disabled){color:var(--txt);border-color:var(--txt)}
-.btn-lg{padding:11px 22px;font-size:14px;border-radius:8px}
-.btn-full{width:100%;justify-content:center}
-.btn-icon{padding:7px 10px}
-.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
+.btn {
+  padding: 7px 13px; border-radius: 8px; border: none;
+  cursor: pointer; font: 600 12.5px 'Inter', system-ui;
+  transition: all var(--trans);
+  display: inline-flex; align-items: center; gap: 5px;
+  white-space: nowrap; -webkit-tap-highlight-color: transparent;
+}
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn:not(:disabled):active { transform: scale(.97); }
+.btn-acc  { background: var(--acc2); color: var(--acc); border: 1px solid rgba(99,102,241,.25); }
+.btn-acc:hover:not(:disabled)  { background: rgba(99,102,241,.22); }
+.btn-grn  { background: var(--grn2); color: var(--grn); border: 1px solid rgba(16,185,129,.25); }
+.btn-grn:hover:not(:disabled)  { background: rgba(16,185,129,.2); }
+.btn-red  { background: var(--red2); color: var(--red); border: 1px solid rgba(239,68,68,.25); }
+.btn-red:hover:not(:disabled)  { background: rgba(239,68,68,.2); }
+.btn-d    { background: transparent; color: var(--txt2); border: 1px solid var(--b); }
+.btn-d:hover:not(:disabled)    { color: var(--txt); border-color: var(--b2); }
+.btn-primary { background: var(--acc); color: #fff; border: 1px solid var(--acc); }
+.btn-primary:hover:not(:disabled) { opacity: .88; }
+.btn-lg   { padding: 11px 22px; font-size: 13.5px; border-radius: 9px; }
+.btn-sm   { padding: 5px 10px; font-size: 11.5px; border-radius: 6px; }
+.btn-icon { padding: 7px 9px; }
+.btn-full { width: 100%; justify-content: center; }
 
-/* ── Search bar ── */
-.search-wrap{display:flex;gap:6px;flex:1;min-width:0}
-.search-wrap .si{flex:1;min-width:0}
+/* ── Search ── */
+.search-wrap { display: flex; gap: 6px; flex: 1; min-width: 0; }
+.search-wrap .si { flex: 1; min-width: 0; }
 
 /* ── Filter toggle ── */
-.ftgl{display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:7px;
-  border:1px solid var(--b);background:0;color:var(--dim);cursor:pointer;
-  font-size:13px;font-weight:500;transition:.15s;white-space:nowrap;flex-shrink:0}
-.ftgl:hover,.ftgl.on{border-color:var(--acc);color:var(--acc);background:rgba(124,110,245,.1)}
-.f-count{background:var(--acc);color:#fff;border-radius:10px;
-  padding:1px 6px;font-size:10px;margin-left:2px}
+.ftgl {
+  display: flex; align-items: center; gap: 5px;
+  padding: 7px 12px; border-radius: 8px;
+  border: 1px solid var(--b); background: transparent;
+  color: var(--txt2); cursor: pointer;
+  font: 500 12.5px 'Inter', system-ui;
+  transition: all var(--trans); white-space: nowrap; flex-shrink: 0;
+}
+.ftgl:hover, .ftgl.on { border-color: var(--acc); color: var(--acc); background: var(--acc2); }
+.f-count { background: var(--acc); color: #fff; border-radius: 10px; padding: 1px 6px; font-size: 9.5px; margin-left: 2px; }
 
-/* ── Active filter chips ── */
-.af-chips{display:flex;gap:6px;flex-wrap:wrap}
-.afc{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
-  background:rgba(124,110,245,.1);border:1px solid rgba(124,110,245,.25);
-  border-radius:20px;font-size:11px;color:var(--acc);white-space:nowrap}
-.afc button{background:none;border:none;color:var(--acc);cursor:pointer;
-  font-size:13px;padding:0;line-height:1;opacity:.7;margin-left:2px}
-.afc button:hover{opacity:1}
+/* ── Filter chips ── */
+.af-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.afc {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; background: var(--acc2);
+  border: 1px solid rgba(99,102,241,.2);
+  border-radius: 20px; font-size: 11px; color: var(--acc); white-space: nowrap;
+}
+.afc button { background: none; border: none; color: var(--acc); cursor: pointer; font-size: 12px; padding: 0; line-height: 1; opacity: .6; margin-left: 2px; }
+.afc button:hover { opacity: 1; }
 
 /* ── Table ── */
-.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table{width:100%;border-collapse:collapse;min-width:480px}
-thead th{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;
-  padding:10px 12px;text-align:left;border-bottom:1px solid var(--b);white-space:nowrap}
-td{padding:10px 12px;font-size:12px;border-bottom:1px solid rgba(37,43,66,.6);vertical-align:middle}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,.015)}
-.empty-row td{text-align:center;color:var(--dim);padding:36px;font-size:13px}
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; min-width: 480px; }
+thead th {
+  font-size: 10px; color: var(--txt3);
+  text-transform: uppercase; letter-spacing: .07em;
+  padding: 10px 14px; text-align: left;
+  border-bottom: 1px solid var(--b); white-space: nowrap;
+  background: var(--s2);
+}
+td {
+  padding: 11px 14px; font-size: 12.5px;
+  border-bottom: 1px solid rgba(30,33,52,.7); vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tbody tr { transition: background var(--trans); }
+tbody tr:hover td { background: rgba(255,255,255,.017); }
+.empty-row td { text-align: center; color: var(--txt3); padding: 44px; font-size: 13px; }
 
 /* ── Badges ── */
-.bd{display:inline-flex;align-items:center;border-radius:20px;padding:2px 9px;
-  font-size:10px;font-weight:600;white-space:nowrap}
-.bd.g{background:rgba(52,211,153,.13);color:var(--grn)}
-.bd.r{background:rgba(248,113,113,.13);color:var(--red)}
-.bd.y{background:rgba(251,191,36,.13);color:var(--ylw)}
-.bd.p{background:rgba(124,110,245,.13);color:var(--acc)}
-.bd.d{background:rgba(100,116,139,.13);color:var(--dim)}
+.bd {
+  display: inline-flex; align-items: center; border-radius: 20px;
+  padding: 2px 9px; font-size: 10px; font-weight: 600; white-space: nowrap;
+}
+.bd.g { background: var(--grn2); color: var(--grn); }
+.bd.r { background: var(--red2); color: var(--red); }
+.bd.y { background: var(--ylw2); color: var(--ylw); }
+.bd.p { background: var(--acc2); color: var(--acc); }
+.bd.d { background: rgba(100,116,139,.1); color: var(--txt2); }
 
-/* ── Sub column ── */
-.acts{display:flex;gap:4px;flex-wrap:nowrap}
-.sub-col{display:flex;flex-direction:column;gap:2px}
-.sub-days{font-size:10px;color:var(--dim)}
+.acts     { display: flex; gap: 4px; flex-wrap: nowrap; }
+.sub-col  { display: flex; flex-direction: column; gap: 2px; }
+.sub-days { font-size: 10px; color: var(--txt3); }
 
 /* ── Pagination ── */
-.pg{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px;flex-wrap:wrap}
-.pb{padding:6px 12px;background:var(--s2);border:1px solid var(--b);border-radius:6px;
-  color:var(--txt);cursor:pointer;font-size:12px;transition:.15s;
-  -webkit-tap-highlight-color:transparent}
-.pb:hover{border-color:var(--acc);color:var(--acc)}
-.pb.on{background:var(--acc);border-color:var(--acc);color:#fff}
-.pb:disabled{opacity:.35;cursor:not-allowed}
-.ptxt{font-size:12px;color:var(--dim);padding:0 2px}
+.pg { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 14px; flex-wrap: wrap; }
+.pb {
+  padding: 5px 11px; background: var(--s2); border: 1px solid var(--b);
+  border-radius: 7px; color: var(--txt2); cursor: pointer;
+  font: 12px 'Inter', system-ui; transition: all var(--trans);
+  -webkit-tap-highlight-color: transparent;
+}
+.pb:hover { border-color: var(--acc); color: var(--acc); }
+.pb.on    { background: var(--acc); border-color: var(--acc); color: #fff; }
+.pb:disabled { opacity: .3; cursor: not-allowed; }
+.ptxt { font-size: 12px; color: var(--txt3); padding: 0 3px; }
 
 /* ── Modal ── */
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
-  display:flex;align-items:flex-end;justify-content:center;
-  backdrop-filter:blur(3px);padding:0}
-.mo{background:var(--s1);border:1px solid var(--b);border-radius:16px 16px 0 0;
-  padding:20px 20px 28px;width:100%;max-width:600px;max-height:90vh;
-  overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.5)}
-.mo-handle{width:40px;height:4px;background:var(--b);border-radius:4px;
-  margin:0 auto 16px;flex-shrink:0}
-.mo-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
-.mo-title{font-size:16px;font-weight:700}
-.mo-sub{font-size:12px;color:var(--dim);margin-top:2px}
-.mo-x{background:none;border:none;color:var(--dim);cursor:pointer;
-  font-size:20px;padding:0;line-height:1;flex-shrink:0}
-.mo-x:hover{color:var(--txt)}
-.ir{display:flex;justify-content:space-between;align-items:center;
-  padding:10px 0;border-bottom:1px solid rgba(37,43,66,.8);font-size:13px;gap:12px}
-.ir:last-child{border-bottom:none}
-.il{color:var(--dim);flex-shrink:0}
-.iv{font-weight:500;max-width:260px;word-break:break-all;text-align:right;font-size:12px}
-.mo-act{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
-.mo-sect{font-size:11px;font-weight:600;color:var(--dim);margin:16px 0 8px;
-  text-transform:uppercase;letter-spacing:.05em}
-.mini-t{width:100%;border-collapse:collapse;border:1px solid var(--b);
-  border-radius:8px;overflow:hidden;font-size:11px}
-.mini-t th{font-size:10px;color:var(--dim);text-transform:uppercase;
-  padding:8px 10px;background:var(--s2);text-align:left;letter-spacing:.04em}
-.mini-t td{padding:8px 10px;border-top:1px solid var(--b)}
+.ov {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.72); z-index: 200;
+  display: flex; align-items: flex-end; justify-content: center;
+  backdrop-filter: blur(4px); padding: 0;
+  animation: fadeIn .15s ease;
+}
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+.mo {
+  background: var(--s1); border: 1px solid var(--b);
+  border-radius: 18px 18px 0 0;
+  padding: 22px 22px 32px; width: 100%;
+  max-width: 580px; max-height: 90vh;
+  overflow-y: auto; box-shadow: 0 -12px 50px rgba(0,0,0,.45);
+  animation: slideUp .18s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: .6 } to { transform: none; opacity: 1 } }
+.mo-handle { width: 36px; height: 3px; background: var(--b2); border-radius: 4px; margin: 0 auto 18px; }
+.mo-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+.mo-title { font-size: 16px; font-weight: 700; }
+.mo-sub   { font-size: 12px; color: var(--txt2); margin-top: 2px; }
+.mo-x {
+  background: var(--s2); border: 1px solid var(--b);
+  color: var(--txt2); cursor: pointer; border-radius: 7px;
+  width: 28px; height: 28px; display: flex; align-items: center;
+  justify-content: center; font-size: 14px; flex-shrink: 0;
+  transition: all var(--trans);
+}
+.mo-x:hover { border-color: var(--txt2); color: var(--txt); }
+.ir {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid rgba(30,33,52,.9);
+  font-size: 13px; gap: 12px;
+}
+.ir:last-child { border-bottom: none; }
+.il { color: var(--txt2); flex-shrink: 0; }
+.iv { font-weight: 500; max-width: 260px; word-break: break-all; text-align: right; font-size: 12px; }
+.mo-act { display: flex; gap: 8px; margin-top: 22px; flex-wrap: wrap; }
+.mo-sect {
+  font-size: 10px; font-weight: 600; color: var(--txt3);
+  margin: 18px 0 9px; text-transform: uppercase; letter-spacing: .07em;
+}
+.mini-t {
+  width: 100%; border-collapse: collapse;
+  border: 1px solid var(--b); border-radius: 8px; overflow: hidden;
+  font-size: 11.5px;
+}
+.mini-t th {
+  font-size: 9.5px; color: var(--txt3); text-transform: uppercase;
+  padding: 8px 10px; background: var(--s2); text-align: left; letter-spacing: .05em;
+}
+.mini-t td { padding: 8px 10px; border-top: 1px solid var(--b); }
 
 /* ── Confirm modal ── */
-.confirm-icon{font-size:40px;text-align:center;margin-bottom:12px}
-.confirm-msg{text-align:center;color:var(--dim);font-size:13px;
-  margin-bottom:20px;line-height:1.7}
-.mo-btns{display:flex;gap:10px;justify-content:center}
-
-/* ── Broadcast page ── */
-.bpage{max-width:640px}
-.bpage h2{font-size:16px;font-weight:700;margin-bottom:4px}
-.bpage .hint{color:var(--dim);font-size:13px;margin-bottom:18px}
-.bcast-ta{width:100%;min-height:140px;background:var(--s2);border:1px solid var(--b);
-  border-radius:8px;padding:12px;color:var(--txt);font-size:14px;outline:none;
-  resize:vertical;transition:.2s;margin-bottom:14px;line-height:1.5}
-.bcast-ta:focus{border-color:var(--acc)}
-.aud-label{font-size:11px;color:var(--dim);text-transform:uppercase;
-  letter-spacing:.06em;margin-bottom:8px}
-.aud-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:16px}
-.aud-card{
-  padding:12px 14px;background:var(--s2);border:2px solid var(--b);
-  border-radius:9px;cursor:pointer;transition:.15s;
-  -webkit-tap-highlight-color:transparent;
+.confirm-ico { font-size: 38px; text-align: center; margin-bottom: 14px; }
+.confirm-msg { text-align: center; color: var(--txt2); font-size: 13px; margin-bottom: 22px; line-height: 1.7; }
+.mo-btns { display: flex; gap: 10px; justify-content: center; }
+.chk-row {
+  display: flex; align-items: center; gap: 9px;
+  justify-content: center; font-size: 12.5px; color: var(--txt2);
+  margin-bottom: 20px; cursor: pointer;
 }
-.aud-card:hover{border-color:var(--acc);background:rgba(124,110,245,.06)}
-.aud-card.sel{border-color:var(--acc);background:rgba(124,110,245,.12)}
-.aud-name{font-size:13px;font-weight:600;margin-bottom:2px}
-.aud-desc{font-size:11px;color:var(--dim);line-height:1.4}
-.aud-count{font-size:13px;font-weight:700;color:var(--acc);margin-top:4px}
-.bcast-footer{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.bcast-total{font-size:13px;color:var(--dim)}
-.bcast-total b{color:var(--txt)}
-.bcast-ok{margin-top:14px;padding:12px 16px;background:rgba(52,211,153,.08);
-  border:1px solid rgba(52,211,153,.25);border-radius:8px;color:var(--grn);font-size:14px}
+.chk-row input { accent-color: var(--acc); width: 14px; height: 14px; cursor: pointer; }
 
-/* ── Loading ── */
-.ld{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--dim);gap:10px}
-.sp{width:18px;height:18px;border:2px solid var(--b);border-top-color:var(--acc);
-  border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* ── Toast ── */
-#toast{position:fixed;bottom:20px;right:16px;background:var(--s2);border:1px solid var(--b);
-  border-radius:9px;padding:12px 18px;font-size:13px;z-index:999;
-  transform:translateY(80px);opacity:0;transition:.28s;pointer-events:none;
-  max-width:calc(100vw - 32px)}
-#toast.show{transform:translateY(0);opacity:1}
-#toast.ok{border-color:rgba(52,211,153,.5);color:var(--grn)}
-#toast.err{border-color:rgba(248,113,113,.5);color:var(--red)}
-
-/* ── Mobile ── */
-@media(max-width:680px){
-  .side{
-    position:fixed;top:0;left:0;bottom:0;
-    transform:translateX(-100%);
-  }
-  .side.open{transform:translateX(0)}
-  .side-overlay{display:block}
-  .menu-btn{display:block}
-  .cg{grid-template-columns:1fr}
-  .sg{grid-template-columns:repeat(2,1fr)}
-  .tb-top{flex-direction:column;align-items:flex-start}
-  .search-wrap .si{font-size:16px}/* prevent zoom iOS */
-  .view{padding:12px}
-  table{min-width:400px}
-  .aud-grid{grid-template-columns:1fr 1fr}
+/* ── Broadcast ── */
+.bpage { max-width: 660px; }
+.bpage h2 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.bpage .hint { color: var(--txt2); font-size: 12.5px; margin-bottom: 20px; }
+.bcast-ta {
+  width: 100%; min-height: 130px;
+  background: var(--s2); border: 1px solid var(--b); border-radius: 10px;
+  padding: 13px; color: var(--txt); font: 13.5px 'Inter', system-ui;
+  outline: none; resize: vertical;
+  transition: border-color var(--trans); margin-bottom: 16px; line-height: 1.55;
 }
-@media(max-width:400px){
-  .sg{grid-template-columns:1fr 1fr}
-  .aud-grid{grid-template-columns:1fr}
+.bcast-ta:focus { border-color: var(--acc); }
+.aud-label { font-size: 10px; color: var(--txt3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+.aud-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin-bottom: 18px; }
+.aud-card {
+  padding: 13px 14px; background: var(--s2);
+  border: 1.5px solid var(--b); border-radius: 10px;
+  cursor: pointer; transition: all var(--trans);
+}
+.aud-card:hover { border-color: var(--b2); }
+.aud-card.sel   { border-color: var(--acc); background: var(--acc2); }
+.aud-name  { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+.aud-desc  { font-size: 11px; color: var(--txt2); line-height: 1.4; }
+.aud-count { font-size: 12px; font-weight: 700; color: var(--acc); margin-top: 6px; }
+.bcast-footer { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.bcast-total  { font-size: 13px; color: var(--txt2); }
+.bcast-total b { color: var(--txt); }
+.bcast-ok {
+  margin-top: 14px; padding: 13px 16px;
+  background: var(--grn2); border: 1px solid rgba(16,185,129,.22);
+  border-radius: 9px; color: var(--grn); font-size: 13.5px;
 }
 
-/* ── Desktop: modal centered ── */
-@media(min-width:681px){
-  .ov{align-items:center;padding:20px}
-  .mo{border-radius:16px;max-height:85vh}
-  .mo-handle{display:none}
+/* ── Loading / toast ── */
+.ld { display: flex; align-items: center; justify-content: center; padding: 56px; color: var(--txt2); gap: 10px; }
+.sp { width: 17px; height: 17px; border: 2px solid var(--b2); border-top-color: var(--acc); border-radius: 50%; animation: spin .65s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg) } }
+#toast {
+  position: fixed; bottom: 20px; right: 16px;
+  background: var(--s2); border: 1px solid var(--b); border-radius: 10px;
+  padding: 11px 18px; font-size: 13px; z-index: 999;
+  transform: translateY(70px); opacity: 0;
+  transition: all .24s ease; pointer-events: none;
+  max-width: calc(100vw - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.3);
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.ok  { border-color: rgba(16,185,129,.4); color: var(--grn); }
+#toast.err { border-color: rgba(239,68,68,.4);  color: var(--red); }
+
+/* ── Responsive ── */
+@media (max-width: 680px) {
+  .side { position: fixed; top: 0; left: 0; bottom: 0; transform: translateX(-100%); }
+  .side.open { transform: translateX(0); }
+  .side-overlay { display: block; }
+  .menu-btn { display: block; }
+  .cg { grid-template-columns: 1fr; }
+  .sg { grid-template-columns: repeat(2, 1fr); }
+  .tb-top { flex-direction: column; align-items: flex-start; }
+  .search-wrap .si { font-size: 16px; }
+  .view { padding: 12px; }
+  table { min-width: 400px; }
+  .aud-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 400px) {
+  .sg { grid-template-columns: 1fr 1fr; }
+  .aud-grid { grid-template-columns: 1fr; }
+}
+@media (min-width: 681px) {
+  .ov { align-items: center; padding: 20px; }
+  .mo { border-radius: 16px; max-height: 84vh; }
+  .mo-handle { display: none; }
 }
 </style>
 </head>
@@ -305,9 +448,9 @@ tr:hover td{background:rgba(255,255,255,.015)}
 <!-- Login -->
 <div id="login">
   <div class="lcard">
-    <div style="font-size:44px">🛡️</div>
+    <div class="lcard-ico">🛡️</div>
     <h1>VPN Admin</h1>
-    <p>Введите пароль администратора</p>
+    <p>Введите пароль для входа в панель</p>
     <input class="linput" type="password" id="pw" placeholder="Пароль"
       onkeydown="if(event.key==='Enter')doLogin()">
     <button class="lbtn" onclick="doLogin()">Войти</button>
@@ -318,36 +461,34 @@ tr:hover td{background:rgba(255,255,255,.015)}
 <!-- App -->
 <div id="app">
 <div class="shell">
-
-  <!-- Sidebar overlay (mobile) -->
   <div class="side-overlay" id="sov" onclick="closeSidebar()" style="display:none"></div>
-
-  <!-- Sidebar -->
   <aside class="side" id="sidebar">
     <div class="brand">
-      <div class="brand-icon">🛡️</div>
-      <div><div class="brand-name">VPN Admin</div><div class="brand-sub">PANEL</div></div>
+      <div class="brand-ico">🛡️</div>
+      <div>
+        <div class="brand-name">VPN Admin</div>
+        <div class="brand-sub">Panel</div>
+      </div>
     </div>
     <nav>
-      <div class="nav-sec">Главное</div>
+      <div class="nav-sec">Обзор</div>
       <div class="ni on" data-p="dash"      onclick="go('dash')"><span class="ic">📊</span>Дашборд</div>
       <div class="nav-sec">База данных</div>
       <div class="ni"    data-p="users"     onclick="go('users')"><span class="ic">👥</span>Пользователи</div>
-      <div class="ni"    data-p="payments"  onclick="go('payments')"><span class="ic">💰</span>Платежи</div>
+      <div class="ni"    data-p="payments"  onclick="go('payments')"><span class="ic">💳</span>Платежи</div>
       <div class="nav-sec">Инструменты</div>
       <div class="ni"    data-p="broadcast" onclick="go('broadcast')"><span class="ic">📢</span>Рассылка</div>
     </nav>
     <div class="side-foot">
-      <button class="out-btn" onclick="doLogout()">🚪 Выйти</button>
+      <button class="out-btn" onclick="doLogout()"><span>🚪</span> Выйти</button>
     </div>
   </aside>
 
-  <!-- Main -->
   <div class="main">
     <div class="topbar">
       <button class="menu-btn" onclick="openSidebar()">☰</button>
       <h1 id="ptitle">Дашборд</h1>
-      <span class="online">● Онлайн</span>
+      <span class="status-dot">Онлайн</span>
     </div>
     <div class="view" id="view">
       <div class="ld"><div class="sp"></div>Загрузка...</div>
@@ -367,16 +508,16 @@ tr:hover td{background:rgba(255,255,255,.015)}
 <script>
 'use strict';
 
-// ═══════════════════════════════════════════════════════
-// CORE
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
+// CORE UTILITIES
+// ══════════════════════════════════════════
 
 const $ = id => document.getElementById(id);
 let _charts = {};
 
 async function api(path, opts = {}) {
   const r = await fetch('/api' + path, {
-    headers: {'Content-Type':'application/json'},
+    headers: {'Content-Type': 'application/json'},
     ...opts,
     body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
   });
@@ -391,8 +532,8 @@ function toast(msg, type = 'ok') {
   window._tt = setTimeout(() => el.className = '', 3200);
 }
 
-function openMo(html)  { $('mo-body').innerHTML = html; $('modal').style.display = 'flex'; }
-function closeMo()     { $('modal').style.display = 'none'; }
+function openMo(html) { $('mo-body').innerHTML = html; $('modal').style.display = 'flex'; }
+function closeMo()    { $('modal').style.display = 'none'; }
 
 function openSidebar() {
   $('sidebar').classList.add('open');
@@ -409,23 +550,23 @@ function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function fmtM(v) {
-  return (+(v||0)).toLocaleString('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0});
+  return (+(v||0)).toLocaleString('ru-RU', {style:'currency', currency:'RUB', maximumFractionDigits:0});
 }
 function fmtD(s) {
   if (!s) return '—';
   return new Date(s).toLocaleString('ru-RU',
-    {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'});
 }
 function fmtDate(s) {
   if (!s) return '—';
-  return new Date(s).toLocaleDateString('ru-RU',
-    {day:'2-digit',month:'2-digit',year:'numeric'});
+  return new Date(s).toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'});
 }
-function today() { return new Date().toISOString().slice(0,10); }
+function today()    { return new Date().toISOString().slice(0, 10); }
+function btnLoad(id){ const el = $(id); if (el) { el.textContent = '⏳'; el.disabled = true; } }
 
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
 // AUTH
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
 
 async function checkAuth() {
   const d = await api('/me');
@@ -447,9 +588,9 @@ function showApp() {
   go('dash');
 }
 
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
 // NAVIGATION
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
 
 const TITLES = {dash:'Дашборд', users:'Пользователи', payments:'Платежи', broadcast:'Рассылка'};
 const PAGES  = {dash:renderDash, users:renderUsers, payments:renderPayments, broadcast:renderBroadcast};
@@ -463,68 +604,95 @@ function go(page) {
 function setView(html) { $('view').innerHTML = html; }
 function loading()     { setView('<div class="ld"><div class="sp"></div>Загрузка...</div>'); }
 
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
 // DASHBOARD
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
 
 async function renderDash() {
   loading();
   const d = await api('/stats');
   setView(`
     <div class="sg">
-      <div class="sc p"><div class="sl">Пользователей</div><div class="sv">${d.total_users}</div><div class="ss">+${d.new_today} сегодня</div></div>
-      <div class="sc g"><div class="sl">Активных подписок</div><div class="sv">${d.active_subs}</div><div class="ss">${d.expiring} истекают</div></div>
-      <div class="sc y"><div class="sl">Выручка за месяц</div><div class="sv">${fmtM(d.revenue_month)}</div><div class="ss">Всего ${fmtM(d.revenue_total)}</div></div>
-      <div class="sc r"><div class="sl">Заблокировано</div><div class="sv">${d.banned}</div><div class="ss">—</div></div>
+      <div class="sc p">
+        <div class="sc-emoji">👥</div>
+        <div class="sl">Пользователей</div>
+        <div class="sv">${d.total_users}</div>
+        <div class="ss">+${d.new_today} за сегодня</div>
+      </div>
+      <div class="sc g">
+        <div class="sc-emoji">✅</div>
+        <div class="sl">Активных подписок</div>
+        <div class="sv">${d.active_subs}</div>
+        <div class="ss">${d.expiring} истекают скоро</div>
+      </div>
+      <div class="sc y">
+        <div class="sc-emoji">💰</div>
+        <div class="sl">Выручка за месяц</div>
+        <div class="sv">${fmtM(d.revenue_month)}</div>
+        <div class="ss">Всего ${fmtM(d.revenue_total)}</div>
+      </div>
+      <div class="sc r">
+        <div class="sc-emoji">🚫</div>
+        <div class="sl">Заблокировано</div>
+        <div class="sv">${d.banned}</div>
+        <div class="ss">Из ${d.total_users} пользователей</div>
+      </div>
     </div>
     <div class="cg">
-      <div class="cc"><div class="ct">💰 Выручка, 14 дней</div><canvas id="cr" height="130"></canvas></div>
-      <div class="cc"><div class="ct">👤 Регистрации, 14 дней</div><canvas id="crg" height="130"></canvas></div>
+      <div class="cc"><div class="ct">Выручка, 14 дней</div><canvas id="cr" height="130"></canvas></div>
+      <div class="cc"><div class="ct">Регистрации, 14 дней</div><canvas id="crg" height="130"></canvas></div>
     </div>`);
-  mkChart('cr',  d.revenue_chart, '#7c6ef5');
-  mkChart('crg', d.reg_chart,     '#34d399');
+  mkChart('cr',  d.revenue_chart, '#6366f1');
+  mkChart('crg', d.reg_chart,     '#10b981');
 }
 
 function mkChart(id, data, color) {
   if (_charts[id]) _charts[id].destroy();
   _charts[id] = new Chart($(id), {
-    type:'line',
-    data:{
+    type: 'line',
+    data: {
       labels: data.map(r => String(r.day ?? '').slice(5)),
-      datasets:[{data: data.map(r => r.total), borderColor:color,
-        backgroundColor:color+'1a', fill:true, tension:.4, pointRadius:3}]
+      datasets: [{
+        data: data.map(r => r.total),
+        borderColor: color, backgroundColor: color + '18',
+        fill: true, tension: .4, pointRadius: 3, pointBackgroundColor: color,
+      }],
     },
-    options:{responsive:true, plugins:{legend:{display:false}},
-      scales:{x:{grid:{color:'#252b4222'},ticks:{color:'#64748b',font:{size:10}}},
-              y:{grid:{color:'#252b4222'},ticks:{color:'#64748b',font:{size:10}}}}}
+    options: {
+      responsive: true, plugins: {legend:{display:false}},
+      scales: {
+        x: {grid:{color:'#21253a66'}, ticks:{color:'#555e7a', font:{size:10}}},
+        y: {grid:{color:'#21253a66'}, ticks:{color:'#555e7a', font:{size:10}}},
+      },
+    },
   });
 }
 
-// ═══════════════════════════════════════════════════════
-// USERS
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
+// USERS — list & filters
+// ══════════════════════════════════════════
 
-const uF = {page:1, search:'', pendingSearch:'',
+const uF = {
+  page:1, search:'', pendingSearch:'',
   sub_status:'', banned:'', reg_from:'', reg_to:'', sub_from:'', sub_to:'',
-  showFilters:false};
+  showFilters: false,
+};
 
 async function renderUsers() {
   loading();
   const p = new URLSearchParams({
     page:uF.page, per_page:25,
     search:uF.search, sub_status:uF.sub_status, banned:uF.banned,
-    reg_from:uF.reg_from, reg_to:uF.reg_to,
-    sub_from:uF.sub_from, sub_to:uF.sub_to,
+    reg_from:uF.reg_from, reg_to:uF.reg_to, sub_from:uF.sub_from, sub_to:uF.sub_to,
   });
-  const d = await api('/users?' + p);
+  const d  = await api('/users?' + p);
   const tp = Math.ceil(d.total / 25);
-  const chips = buildChips();
 
   setView(`
     <div class="tc">
       <div class="tb">
         <div class="tb-top">
-          <h2>Пользователи <span style="color:var(--dim);font-weight:400;font-size:13px">${d.total}</span></h2>
+          <h2>Пользователи <span class="tb-count">${d.total}</span></h2>
           <div class="tb-row">
             <div class="search-wrap">
               <input class="si" id="usrch" placeholder="🔍 Имя, @username или ID"
@@ -534,75 +702,79 @@ async function renderUsers() {
             </div>
             <button class="ftgl ${uF.showFilters?'on':''}"
               onclick="uF.showFilters=!uF.showFilters;renderUsers()">
-              ⚙${countF()?`<span class="f-count">${countF()}</span>`:''}
+              ⚙ Фильтры${countF()?`<span class="f-count">${countF()}</span>`:''}
             </button>
             ${countF()?`<button class="btn btn-d btn-sm" onclick="resetF()">✕</button>`:''}
-            <button class="btn btn-d btn-icon" onclick="renderUsers()">↻</button>
+            <button class="btn btn-d btn-icon" title="Обновить" onclick="renderUsers()">↻</button>
           </div>
         </div>
-
-        ${uF.showFilters ? `
-        <div class="fp">
-          <div class="fg">
-            <label>Подписка</label>
-            <select class="fsel" onchange="uF.sub_status=this.value;uF.page=1;renderUsers()">
-              <option value="">Любая</option>
-              <option value="active"   ${uF.sub_status==='active'  ?'selected':''}>Активная</option>
-              <option value="expiring" ${uF.sub_status==='expiring'?'selected':''}>Истекает (3 дня)</option>
-              <option value="expired"  ${uF.sub_status==='expired' ?'selected':''}>Истекла</option>
-              <option value="no_sub"   ${uF.sub_status==='no_sub'  ?'selected':''}>Нет подписки</option>
-            </select>
-          </div>
-          <div class="fg">
-            <label>Пользователь</label>
-            <select class="fsel" onchange="uF.banned=this.value;uF.page=1;renderUsers()">
-              <option value="">Все</option>
-              <option value="false" ${uF.banned==='false'?'selected':''}>Активные</option>
-              <option value="true"  ${uF.banned==='true' ?'selected':''}>Забаненные</option>
-            </select>
-          </div>
-          <div class="fg">
-            <label>Дата регистрации</label>
-            <div class="date-range">
-              <input type="date" class="di" value="${uF.reg_from}" max="${today()}"
-                onchange="uF.reg_from=this.value;uF.page=1;renderUsers()">
-              <span>—</span>
-              <input type="date" class="di" value="${uF.reg_to}" max="${today()}"
-                onchange="uF.reg_to=this.value;uF.page=1;renderUsers()">
-            </div>
-          </div>
-          <div class="fg">
-            <label>Дата покупки подписки</label>
-            <div class="date-range">
-              <input type="date" class="di" value="${uF.sub_from}" max="${today()}"
-                onchange="uF.sub_from=this.value;uF.page=1;renderUsers()">
-              <span>—</span>
-              <input type="date" class="di" value="${uF.sub_to}" max="${today()}"
-                onchange="uF.sub_to=this.value;uF.page=1;renderUsers()">
-            </div>
-          </div>
-          <div class="fg" style="justify-content:flex-end;margin-top:auto">
-            <button class="btn btn-d btn-sm"
-              onclick="uF.reg_from=today();uF.reg_to=today();uF.page=1;renderUsers()">
-              Рег. сегодня
-            </button>
-          </div>
-        </div>` : ''}
-        ${chips ? `<div class="af-chips">${chips}</div>` : ''}
+        ${uF.showFilters ? renderFilterPanel() : ''}
+        ${buildChips() ? `<div class="af-chips">${buildChips()}</div>` : ''}
       </div>
-
       <div class="table-wrap">
         <table>
           <thead><tr>
             <th>Пользователь</th><th>Статус</th><th>Подписка</th>
             <th>Потрачено</th><th>Регистрация</th><th></th>
           </tr></thead>
-          <tbody>${d.users.map(userRow).join('') ||
-            '<tr class="empty-row"><td colspan="6">Нет пользователей</td></tr>'}</tbody>
+          <tbody>
+            ${d.users.map(userRow).join('') ||
+              '<tr class="empty-row"><td colspan="6">Нет пользователей</td></tr>'}
+          </tbody>
         </table>
       </div>
       ${mkPager(uF.page, tp, 'uF.page', 'renderUsers')}
     </div>`);
+}
+
+function renderFilterPanel() {
+  return `
+    <div class="fp">
+      <div class="fg">
+        <label>Подписка</label>
+        <select class="fsel" onchange="uF.sub_status=this.value;uF.page=1;renderUsers()">
+          <option value="">Любая</option>
+          <option value="active"   ${uF.sub_status==='active'  ?'selected':''}>Активная</option>
+          <option value="expiring" ${uF.sub_status==='expiring'?'selected':''}>Истекает (3 дня)</option>
+          <option value="expired"  ${uF.sub_status==='expired' ?'selected':''}>Истекла</option>
+          <option value="no_sub"   ${uF.sub_status==='no_sub'  ?'selected':''}>Нет подписки</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Пользователь</label>
+        <select class="fsel" onchange="uF.banned=this.value;uF.page=1;renderUsers()">
+          <option value="">Все</option>
+          <option value="false" ${uF.banned==='false'?'selected':''}>Активные</option>
+          <option value="true"  ${uF.banned==='true' ?'selected':''}>Забаненные</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Дата регистрации</label>
+        <div class="date-range">
+          <input type="date" class="di" value="${uF.reg_from}" max="${today()}"
+            onchange="uF.reg_from=this.value;uF.page=1;renderUsers()">
+          <span>—</span>
+          <input type="date" class="di" value="${uF.reg_to}" max="${today()}"
+            onchange="uF.reg_to=this.value;uF.page=1;renderUsers()">
+        </div>
+      </div>
+      <div class="fg">
+        <label>Дата покупки</label>
+        <div class="date-range">
+          <input type="date" class="di" value="${uF.sub_from}" max="${today()}"
+            onchange="uF.sub_from=this.value;uF.page=1;renderUsers()">
+          <span>—</span>
+          <input type="date" class="di" value="${uF.sub_to}" max="${today()}"
+            onchange="uF.sub_to=this.value;uF.page=1;renderUsers()">
+        </div>
+      </div>
+      <div class="fg" style="justify-content:flex-end;margin-top:auto">
+        <button class="btn btn-d btn-sm"
+          onclick="uF.reg_from=today();uF.reg_to=today();uF.page=1;renderUsers()">
+          Сегодня
+        </button>
+      </div>
+    </div>`;
 }
 
 function commitSearch() {
@@ -611,44 +783,55 @@ function commitSearch() {
   uF.page = 1;
 }
 function countF() {
-  return [uF.search,uF.sub_status,uF.banned,uF.reg_from,uF.reg_to,uF.sub_from,uF.sub_to].filter(Boolean).length;
+  return [uF.search, uF.sub_status, uF.banned, uF.reg_from, uF.reg_to, uF.sub_from, uF.sub_to]
+    .filter(Boolean).length;
 }
 function resetF() {
-  Object.assign(uF,{page:1,search:'',pendingSearch:'',sub_status:'',
-    banned:'',reg_from:'',reg_to:'',sub_from:'',sub_to:''});
+  Object.assign(uF, {page:1, search:'', pendingSearch:'', sub_status:'',
+    banned:'', reg_from:'', reg_to:'', sub_from:'', sub_to:''});
   renderUsers();
 }
 function buildChips() {
   const c = [];
-  const ch = (l,cb) => `<span class="afc">${l}<button onclick="${cb}">×</button></span>`;
-  if (uF.search)     c.push(ch(`«${esc(uF.search)}»`, "uF.search='';uF.pendingSearch='';uF.page=1;renderUsers()"));
-  if (uF.sub_status) c.push(ch({active:'Активная',expiring:'Истекает',expired:'Истекла',no_sub:'Нет подписки'}[uF.sub_status]||uF.sub_status,"uF.sub_status='';uF.page=1;renderUsers()"));
-  if (uF.banned)     c.push(ch(uF.banned==='true'?'Забаненные':'Активные',"uF.banned='';uF.page=1;renderUsers()"));
-  if (uF.reg_from||uF.reg_to) c.push(ch(`Рег: ${uF.reg_from||'…'}–${uF.reg_to||'…'}`,"uF.reg_from='';uF.reg_to='';uF.page=1;renderUsers()"));
-  if (uF.sub_from||uF.sub_to) c.push(ch(`Покупка: ${uF.sub_from||'…'}–${uF.sub_to||'…'}`,"uF.sub_from='';uF.sub_to='';uF.page=1;renderUsers()"));
+  const ch = (l, cb) => `<span class="afc">${l}<button onclick="${cb}">×</button></span>`;
+  if (uF.search)
+    c.push(ch(`«${esc(uF.search)}»`, "uF.search='';uF.pendingSearch='';uF.page=1;renderUsers()"));
+  if (uF.sub_status)
+    c.push(ch({active:'Активная',expiring:'Истекает',expired:'Истекла',no_sub:'Нет подписки'}[uF.sub_status]||uF.sub_status, "uF.sub_status='';uF.page=1;renderUsers()"));
+  if (uF.banned)
+    c.push(ch(uF.banned==='true'?'Забаненные':'Активные', "uF.banned='';uF.page=1;renderUsers()"));
+  if (uF.reg_from||uF.reg_to)
+    c.push(ch(`Рег: ${uF.reg_from||'…'}–${uF.reg_to||'…'}`, "uF.reg_from='';uF.reg_to='';uF.page=1;renderUsers()"));
+  if (uF.sub_from||uF.sub_to)
+    c.push(ch(`Покупка: ${uF.sub_from||'…'}–${uF.sub_to||'…'}`, "uF.sub_from='';uF.sub_to='';uF.page=1;renderUsers()"));
   return c.join('');
 }
 
 function userRow(u) {
   const hasActive = u.sub_id && u.sub_active && new Date(u.expires_at) > new Date();
   const hasAny    = !!u.sub_id;
-  let actions = '';
+  let subActions = '';
   if (!hasAny || !u.sub_active || new Date(u.expires_at) <= new Date())
-    actions = `<button class="btn btn-grn btn-sm" onclick="confirmGrant(${u.user_id},'${esc(u.first_name)}')">🎁 Выдать</button>`;
+    subActions = `<button class="btn btn-grn btn-sm" onclick="confirmGrant(${u.user_id},'${esc(u.first_name)}')">🎁 Выдать</button>`;
   else
-    actions = `<button class="btn btn-acc btn-sm" onclick="confirmExtend(${u.user_id},'${esc(u.first_name)}')">➕</button>
-               <button class="btn btn-red btn-sm" onclick="confirmDisable(${u.user_id},'${esc(u.first_name)}')">⏹</button>`;
+    subActions = `<button class="btn btn-acc btn-sm" onclick="confirmExtend(${u.user_id},'${esc(u.first_name)}')">➕</button>
+                  <button class="btn btn-red btn-sm" onclick="confirmDisable(${u.user_id},'${esc(u.first_name)}')">⏹</button>`;
 
   return `<tr>
     <td>
-      <div style="font-weight:600;font-size:13px">${esc(u.first_name||'—')}</div>
-      <div style="color:var(--dim);font-size:11px">${u.username?'@'+esc(u.username)+' ':''}<code>${u.user_id}</code></div>
+      <div style="font-weight:600">${esc(u.first_name||'—')}</div>
+      <div style="color:var(--txt3);font-size:11px">${u.username?'@'+esc(u.username)+' ':''}<code style="font-size:10px">${u.user_id}</code></div>
     </td>
-    <td><span class="bd ${u.is_banned?'r':'g'}">${u.is_banned?'🚫 Бан':'✓ OK'}</span></td>
+    <td><span class="bd ${u.is_banned?'r':'g'}">${u.is_banned?'Забанен':'Активен'}</span></td>
     <td>${subBadge(u)}</td>
     <td style="white-space:nowrap">${fmtM(u.total_spent)}</td>
-    <td style="white-space:nowrap;font-size:11px">${fmtDate(u.registered_at)}</td>
-    <td><div class="acts">${actions}<button class="btn btn-d btn-icon btn-sm" onclick="showUser(${u.user_id})" title="Подробнее">…</button></div></td>
+    <td style="white-space:nowrap;font-size:11.5px;color:var(--txt2)">${fmtDate(u.registered_at)}</td>
+    <td>
+      <div class="acts">
+        ${subActions}
+        <button class="btn btn-d btn-icon btn-sm" onclick="showUser(${u.user_id})" title="Подробнее">···</button>
+      </div>
+    </td>
   </tr>`;
 }
 
@@ -657,12 +840,13 @@ function subBadge(u) {
   const exp = new Date(u.expires_at), now = new Date();
   if (!u.sub_active || exp <= now) return '<span class="bd r">Истекла</span>';
   const days = Math.ceil((exp - now) / 86400000);
-  return `<div class="sub-col"><span class="bd ${days<=3?'y':'g'}">Активна</span><span class="sub-days">${days}д.</span></div>`;
+  return `<div class="sub-col"><span class="bd ${days<=3?'y':'g'}">Активна</span><span class="sub-days">${days} дн.</span></div>`;
 }
 
-// ── User detail modal ──────────────────────────────────
+// ── User detail modal ──────────────────────────────
+
 async function showUser(uid) {
-  openMo('<div class="ld"><div class="sp"></div></div>');
+  openMo('<div class="ld"><div class="sp"></div>Загрузка...</div>');
   const d = await api('/users/' + uid);
   if (d.error) { closeMo(); toast(d.error, 'err'); return; }
   const u = d.user;
@@ -670,16 +854,21 @@ async function showUser(uid) {
 
   const subRows = d.subscriptions.slice(0,5).map(s => {
     const ok = s.is_active && new Date(s.expires_at) > new Date();
-    return `<tr><td>#${s.id}</td>
+    return `<tr>
+      <td>#${s.id}</td>
       <td style="word-break:break-all"><code style="font-size:10px">${esc(s.marzban_username)}</code></td>
-      <td><span class="bd ${ok?'g':'r'}">${ok?'Актив.':'Истекла'}</span></td>
-      <td>${fmtD(s.expires_at)}</td></tr>`;
-  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--dim);padding:10px">—</td></tr>';
+      <td><span class="bd ${ok?'g':'r'}">${ok?'Активна':'Истекла'}</span></td>
+      <td style="white-space:nowrap">${fmtD(s.expires_at)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:12px">—</td></tr>';
 
   const payRows = d.payments.slice(0,5).map(p =>
-    `<tr><td><span class="bd ${p.status==='succeeded'?'g':p.status==='pending'?'y':'r'}">${p.status}</span></td>
-    <td>${fmtM(p.amount)}</td><td>${fmtD(p.created_at)}</td></tr>`
-  ).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:10px">—</td></tr>';
+    `<tr>
+      <td><span class="bd ${p.status==='succeeded'?'g':p.status==='pending'?'y':'r'}">${p.status}</span></td>
+      <td>${fmtM(p.amount)}</td>
+      <td style="white-space:nowrap">${fmtD(p.created_at)}</td>
+    </tr>`
+  ).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--txt3);padding:12px">—</td></tr>';
 
   openMo(`
     <div class="mo-handle"></div>
@@ -695,25 +884,33 @@ async function showUser(uid) {
     <div class="ir"><span class="il">Регистрация</span><span class="iv">${fmtD(u.registered_at)}</span></div>
     <div class="ir"><span class="il">Потрачено</span><span class="iv">${fmtM(u.total_spent)}</span></div>
     <div class="mo-sect">Подписки</div>
-    <table class="mini-t"><thead><tr><th>ID</th><th>Marzban</th><th>Статус</th><th>Истекает</th></tr></thead>
-    <tbody>${subRows}</tbody></table>
+    <table class="mini-t">
+      <thead><tr><th>ID</th><th>Marzban</th><th>Статус</th><th>Истекает</th></tr></thead>
+      <tbody>${subRows}</tbody>
+    </table>
     <div class="mo-sect">Платежи</div>
-    <table class="mini-t"><thead><tr><th>Статус</th><th>Сумма</th><th>Дата</th></tr></thead>
-    <tbody>${payRows}</tbody></table>
+    <table class="mini-t">
+      <thead><tr><th>Статус</th><th>Сумма</th><th>Дата</th></tr></thead>
+      <tbody>${payRows}</tbody>
+    </table>
     <div class="mo-act">
       ${!hasActive?`<button class="btn btn-grn" onclick="closeMo();confirmGrant(${u.user_id},'${esc(u.first_name)}')">🎁 Выдать</button>`:''}
-      ${hasActive?`<button class="btn btn-acc" onclick="closeMo();confirmExtend(${u.user_id},'${esc(u.first_name)}')">➕ Продлить</button>`:''}
-      ${hasActive?`<button class="btn btn-red" onclick="closeMo();confirmDisable(${u.user_id},'${esc(u.first_name)}')">⏹ Отключить</button>`:''}
+      ${hasActive ?`<button class="btn btn-acc" onclick="closeMo();confirmExtend(${u.user_id},'${esc(u.first_name)}')">➕ Продлить</button>`:''}
+      ${hasActive ?`<button class="btn btn-red" onclick="closeMo();confirmDisable(${u.user_id},'${esc(u.first_name)}')">⏹ Отключить</button>`:''}
       ${u.is_banned
         ?`<button class="btn btn-grn" onclick="doBan(${u.user_id},false)">✓ Разбанить</button>`
-        :`<button class="btn btn-red" onclick="doBan(${u.user_id},true)">🚫 Забанить</button>`}
+        :`<button class="btn btn-d" onclick="doBan(${u.user_id},true)"
+            style="border-color:rgba(239,68,68,.3);color:var(--red)">🚫 Забанить</button>`}
+      <button class="btn btn-red" onclick="closeMo();confirmDelete(${u.user_id},'${esc(u.first_name)}')">🗑 Удалить</button>
     </div>`);
 }
 
-// ── Sub actions ────────────────────────────────────────
+// ── Subscription confirmations ─────────────────────
+
 function confirmGrant(uid, name) {
-  openMo(`<div class="mo-handle"></div>
-    <div class="confirm-icon">🎁</div>
+  openMo(`
+    <div class="mo-handle"></div>
+    <div class="confirm-ico">🎁</div>
     <div class="mo-title" style="text-align:center;margin-bottom:8px">Выдать подписку</div>
     <div class="confirm-msg">Будет создан пользователь в Marzban<br>и добавлена подписка для <b>${esc(name)}</b></div>
     <div class="mo-btns">
@@ -721,9 +918,11 @@ function confirmGrant(uid, name) {
       <button class="btn btn-grn btn-lg" id="cb" onclick="doGrant(${uid})">✓ Выдать</button>
     </div>`);
 }
+
 function confirmExtend(uid, name) {
-  openMo(`<div class="mo-handle"></div>
-    <div class="confirm-icon">➕</div>
+  openMo(`
+    <div class="mo-handle"></div>
+    <div class="confirm-ico">➕</div>
     <div class="mo-title" style="text-align:center;margin-bottom:8px">Продлить подписку</div>
     <div class="confirm-msg">Подписка будет продлена в Marzban и БД<br>для <b>${esc(name)}</b></div>
     <div class="mo-btns">
@@ -731,15 +930,15 @@ function confirmExtend(uid, name) {
       <button class="btn btn-acc btn-lg" id="cb" onclick="doExtend(${uid})">✓ Продлить</button>
     </div>`);
 }
+
 function confirmDisable(uid, name) {
-  openMo(`<div class="mo-handle"></div>
-    <div class="confirm-icon">⏹</div>
+  openMo(`
+    <div class="mo-handle"></div>
+    <div class="confirm-ico">⏹</div>
     <div class="mo-title" style="text-align:center;margin-bottom:8px">Отключить подписку</div>
     <div class="confirm-msg">Подписка <b>${esc(name)}</b> будет деактивирована</div>
-    <label style="display:flex;align-items:center;gap:8px;justify-content:center;font-size:13px;
-      color:var(--dim);margin-bottom:18px;cursor:pointer">
-      <input type="checkbox" id="del-mz" style="accent-color:var(--acc);width:15px;height:15px">
-      Удалить из Marzban
+    <label class="chk-row">
+      <input type="checkbox" id="del-mz"> Удалить из Marzban
     </label>
     <div class="mo-btns">
       <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
@@ -747,47 +946,86 @@ function confirmDisable(uid, name) {
     </div>`);
 }
 
-async function doGrant(uid)   { btnLoad('cb'); const d = await api('/users/'+uid+'/sub/grant',  {method:'POST',body:{}}); closeMo(); d.error?toast(d.error,'err'):(toast('✅ Подписка выдана!'),renderUsers()); }
-async function doExtend(uid)  { btnLoad('cb'); const d = await api('/users/'+uid+'/sub/extend', {method:'POST',body:{}}); closeMo(); d.error?toast(d.error,'err'):(toast('✅ Продлена!'),renderUsers()); }
-async function doDisable(uid) {
-  const del = $('del-mz')?.checked||false;
+function confirmDelete(uid, name) {
+  openMo(`
+    <div class="mo-handle"></div>
+    <div class="confirm-ico">🗑</div>
+    <div class="mo-title" style="text-align:center;margin-bottom:8px">Удалить пользователя</div>
+    <div class="confirm-msg">
+      Пользователь <b>${esc(name)}</b> (ID: ${uid}) будет навсегда удалён<br>
+      из базы данных вместе со всеми подписками и платежами.
+    </div>
+    <label class="chk-row">
+      <input type="checkbox" id="del-mz-full"> Удалить из Marzban
+    </label>
+    <div class="mo-btns">
+      <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
+      <button class="btn btn-red btn-lg" id="cb" onclick="doDelete(${uid})">🗑 Удалить</button>
+    </div>`);
+}
+
+// ── Action handlers ────────────────────────────────
+
+async function doGrant(uid) {
   btnLoad('cb');
-  const d = await api('/users/'+uid+'/sub/disable', {method:'POST',body:{delete_marzban:del}});
-  closeMo(); d.error?toast(d.error,'err'):(toast('Подписка отключена'),renderUsers());
+  const d = await api('/users/'+uid+'/sub/grant', {method:'POST', body:{}});
+  closeMo();
+  d.error ? toast(d.error, 'err') : (toast('✅ Подписка выдана!'), renderUsers());
+}
+async function doExtend(uid) {
+  btnLoad('cb');
+  const d = await api('/users/'+uid+'/sub/extend', {method:'POST', body:{}});
+  closeMo();
+  d.error ? toast(d.error, 'err') : (toast('✅ Продлена!'), renderUsers());
+}
+async function doDisable(uid) {
+  const del = $('del-mz')?.checked || false;
+  btnLoad('cb');
+  const d = await api('/users/'+uid+'/sub/disable', {method:'POST', body:{delete_marzban:del}});
+  closeMo();
+  d.error ? toast(d.error, 'err') : (toast('Подписка отключена'), renderUsers());
 }
 async function doBan(uid, banned) {
-  const d = await api('/users/'+uid+'/ban', {method:'POST',body:{banned}});
+  const d = await api('/users/'+uid+'/ban', {method:'POST', body:{banned}});
   if (d.ok) { toast(banned?'🚫 Забанен':'✓ Разбанен', banned?'err':'ok'); closeMo(); renderUsers(); }
 }
-function btnLoad(id) { const el=$(id); if(el){el.textContent='⏳';el.disabled=true;} }
+async function doDelete(uid) {
+  const del = $('del-mz-full')?.checked || false;
+  btnLoad('cb');
+  const d = await api('/users/'+uid, {method:'DELETE', body:{delete_marzban:del}});
+  closeMo();
+  d.error ? toast(d.error, 'err') : (toast('🗑 Пользователь удалён'), renderUsers());
+}
 
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
 // PAYMENTS
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
 
 const pF = {page:1, status:''};
 
 async function renderPayments() {
   loading();
-  const d = await api('/payments?' + new URLSearchParams({page:pF.page, per_page:25, status:pF.status}));
+  const d  = await api('/payments?' + new URLSearchParams({page:pF.page, per_page:25, status:pF.status}));
   const tp = Math.ceil(d.total / 25);
 
   const rows = d.payments.map(p => `<tr>
     <td>
       <div style="font-weight:500">${esc(p.first_name||'—')}</div>
-      <div style="color:var(--dim);font-size:11px">${p.username?'@'+esc(p.username)+' ':''}<code>${p.user_id}</code></div>
+      <div style="color:var(--txt3);font-size:11px">${p.username?'@'+esc(p.username)+' ':''}<code style="font-size:10px">${p.user_id}</code></div>
     </td>
     <td><span class="bd ${p.status==='succeeded'?'g':p.status==='pending'?'y':'r'}">${p.status}</span></td>
     <td style="font-weight:600;white-space:nowrap">${fmtM(p.amount)}</td>
-    <td style="font-size:10px;color:var(--dim);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.yukassa_payment_id||'—')}</td>
-    <td style="font-size:11px;white-space:nowrap">${fmtD(p.created_at)}</td>
+    <td style="font-size:10.5px;color:var(--txt3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+      ${esc(p.yukassa_payment_id||'—')}
+    </td>
+    <td style="font-size:11.5px;white-space:nowrap;color:var(--txt2)">${fmtD(p.created_at)}</td>
   </tr>`).join('');
 
   setView(`
     <div class="tc">
       <div class="tb">
         <div class="tb-top">
-          <h2>Платежи <span style="color:var(--dim);font-weight:400;font-size:13px">${d.total}</span></h2>
+          <h2>Платежи <span class="tb-count">${d.total}</span></h2>
           <div class="tb-row">
             <select class="fsel" onchange="pF.status=this.value;pF.page=1;renderPayments()">
               <option value="">Все статусы</option>
@@ -795,42 +1033,41 @@ async function renderPayments() {
               <option value="pending"   ${pF.status==='pending'  ?'selected':''}>Ожидающие</option>
               <option value="canceled"  ${pF.status==='canceled' ?'selected':''}>Отменённые</option>
             </select>
-            <button class="btn btn-d btn-icon" onclick="renderPayments()">↻</button>
+            <button class="btn btn-d btn-icon" title="Обновить" onclick="renderPayments()">↻</button>
           </div>
         </div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Пользователь</th><th>Статус</th><th>Сумма</th><th>ЮKassa ID</th><th>Дата</th></tr></thead>
-          <tbody>${rows||'<tr class="empty-row"><td colspan="5">Нет платежей</td></tr>'}</tbody>
+          <thead><tr>
+            <th>Пользователь</th><th>Статус</th><th>Сумма</th><th>ЮKassa ID</th><th>Дата</th>
+          </tr></thead>
+          <tbody>${rows || '<tr class="empty-row"><td colspan="5">Нет платежей</td></tr>'}</tbody>
         </table>
       </div>
       ${mkPager(pF.page, tp, 'pF.page', 'renderPayments')}
     </div>`);
 }
 
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
 // BROADCAST
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
 
 const AUDIENCES = [
-  {key:'all',       name:'Все пользователи',   desc:'Все незабаненные'},
-  {key:'active',    name:'Активная подписка',  desc:'Подписка активна прямо сейчас'},
-  {key:'expiring',  name:'Истекает скоро',     desc:'Подписка истекает в ближ. 3 дня'},
-  {key:'expired',   name:'Подписка истекла',   desc:'Была подписка, сейчас неактивна'},
-  {key:'no_sub',    name:'Без подписки',       desc:'Никогда не покупали'},
-  {key:'no_payment',name:'Без платежей',       desc:'Зарег., но ни разу не платили'},
-  {key:'paid_once', name:'Только 1 платёж',    desc:'Купили один раз — не вернулись'},
+  {key:'all',        name:'Все пользователи',  desc:'Все незабаненные'},
+  {key:'active',     name:'Активная подписка', desc:'Подписка активна прямо сейчас'},
+  {key:'expiring',   name:'Истекает скоро',    desc:'Истекает в ближ. 3 дня'},
+  {key:'expired',    name:'Подписка истекла',  desc:'Была подписка, сейчас неактивна'},
+  {key:'no_sub',     name:'Без подписки',      desc:'Никогда не покупали'},
+  {key:'no_payment', name:'Без платежей',      desc:'Зарег., но ни разу не платили'},
+  {key:'paid_once',  name:'Только 1 платёж',   desc:'Купили один раз — не вернулись'},
 ];
-
-let bAud = 'all';
+let bAud    = 'all';
 let bCounts = {};
 
 async function renderBroadcast() {
-  // Загружаем счётчики параллельно
-  const counts = await Promise.all(
-    AUDIENCES.map(a => api('/broadcast/count?audience=' + a.key))
-  );
+  loading();
+  const counts = await Promise.all(AUDIENCES.map(a => api('/broadcast/count?audience=' + a.key)));
   AUDIENCES.forEach((a, i) => { bCounts[a.key] = counts[i]?.count ?? '?'; });
   _renderBroadcastUI();
 }
@@ -844,14 +1081,14 @@ function _renderBroadcastUI() {
     </div>`).join('');
 
   setView(`
-    <div class="tc bpage" style="padding:20px">
-      <h2>📢 Рассылка</h2>
-      <p class="hint" style="margin-top:4px">HTML поддерживается: &lt;b&gt;, &lt;i&gt;, &lt;code&gt;, &lt;a href&gt;</p>
+    <div class="tc bpage" style="padding:22px">
+      <h2>Рассылка</h2>
+      <p class="hint">Поддерживается HTML: &lt;b&gt;, &lt;i&gt;, &lt;code&gt;, &lt;a href&gt;</p>
       <textarea class="bcast-ta" id="bt" placeholder="Текст рассылки..."></textarea>
       <div class="aud-label">Аудитория</div>
       <div class="aud-grid">${cards}</div>
       <div class="bcast-footer">
-        <button class="btn btn-acc btn-lg" id="sbtn" onclick="sendBroadcast()">
+        <button class="btn btn-primary btn-lg" id="sbtn" onclick="sendBroadcast()">
           📤 Отправить
         </button>
         <span class="bcast-total">Получателей: <b>${bCounts[bAud] ?? '…'}</b></span>
@@ -872,21 +1109,22 @@ async function sendBroadcast() {
   el.style.display = 'block';
   el.className = 'bcast-ok';
   el.innerHTML = `✅ Отправлено: <b>${d.sent}</b>, ошибок: <b>${d.failed}</b>`;
-  // Обновляем счётчик для текущей аудитории
-  bCounts[bAud] = d.total;
 }
 
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
 // PAGINATION
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════
 
 function mkPager(page, total, varName, fn) {
   if (total <= 1) return '';
   const btns = [];
-  const s = Math.max(1, page-2), e = Math.min(total, page+2);
-  if (s > 1) btns.push(`<button class="pb" onclick="${varName}=1;${fn}()">1</button>${s>2?'<span class="ptxt">…</span>':''}`);
-  for (let i=s;i<=e;i++) btns.push(`<button class="pb ${i===page?'on':''}" onclick="${varName}=${i};${fn}()">${i}</button>`);
-  if (e < total) btns.push(`${e<total-1?'<span class="ptxt">…</span>':''}<button class="pb" onclick="${varName}=${total};${fn}()">${total}</button>`);
+  const s = Math.max(1, page - 2), e = Math.min(total, page + 2);
+  if (s > 1)
+    btns.push(`<button class="pb" onclick="${varName}=1;${fn}()">1</button>${s>2?'<span class="ptxt">…</span>':''}`);
+  for (let i = s; i <= e; i++)
+    btns.push(`<button class="pb ${i===page?'on':''}" onclick="${varName}=${i};${fn}()">${i}</button>`);
+  if (e < total)
+    btns.push(`${e<total-1?'<span class="ptxt">…</span>':''}<button class="pb" onclick="${varName}=${total};${fn}()">${total}</button>`);
   return `<div class="pg">
     <button class="pb" onclick="${varName}=Math.max(1,${page}-1);${fn}()" ${page<=1?'disabled':''}>←</button>
     ${btns.join('')}
@@ -894,7 +1132,7 @@ function mkPager(page, total, varName, fn) {
   </div>`;
 }
 
-// ── Boot ───────────────────────────────────────────────
+// ── Boot ─────────────────────────────────
 checkAuth();
 </script>
 </body>

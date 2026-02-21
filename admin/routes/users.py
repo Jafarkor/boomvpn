@@ -235,6 +235,48 @@ def extend_sub(uid):
         return jsonify({"error": str(e)}), 500
 
 
+# ── Delete user ────────────────────────────────────────────────────
+
+@bp.delete("/users/<int:uid>")
+def delete_user(uid):
+    delete_from_marzban = (request.json or {}).get("delete_marzban", False)
+
+    async def _():
+        c = await conn()
+        try:
+            sub = await c.fetchrow(
+                "SELECT marzban_username FROM subscriptions "
+                "WHERE user_id=$1 ORDER BY id DESC LIMIT 1",
+                uid,
+            )
+            await c.execute("DELETE FROM payments WHERE user_id=$1", uid)
+            await c.execute("DELETE FROM subscriptions WHERE user_id=$1", uid)
+            deleted = await c.fetchval(
+                "DELETE FROM users WHERE user_id=$1 RETURNING user_id", uid
+            )
+        finally:
+            await c.close()
+
+        if not deleted:
+            return {"error": "Пользователь не найден"}
+
+        if delete_from_marzban and sub and sub["marzban_username"]:
+            try:
+                await mz.delete_user(sub["marzban_username"])
+            except Exception:
+                pass
+
+        return {"ok": True}
+
+    try:
+        result = run(_())
+        if result.get("error"):
+            return jsonify(result), 404
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Disable subscription ───────────────────────────────────────────
 
 @bp.post("/users/<int:uid>/sub/disable")
