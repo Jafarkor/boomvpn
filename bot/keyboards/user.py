@@ -22,9 +22,9 @@ def menu_kb_no_sub() -> InlineKeyboardMarkup:
 def menu_kb_with_sub() -> InlineKeyboardMarkup:
     """Меню когда подписка активна."""
     kb = InlineKeyboardBuilder()
-    kb.button(text="🔗 Ссылка подписки",  callback_data="get_sub_url")
-    kb.button(text="📖 Инструкция",       callback_data="instruction")
-    kb.button(text="⚙️ Настройки",        callback_data="settings")
+    kb.button(text='<tg-emoji emoji-id="5877465816030515018">🔗</tg-emoji> VPN-ссылка',  callback_data="get_sub_url")
+    kb.button(text='<tg-emoji emoji-id="5974193375799152241">ℹ️</tg-emoji> Инструкция',  callback_data="instruction")
+    kb.button(text='<tg-emoji emoji-id="5258096772776991776">⚙️</tg-emoji> Настройки',        callback_data="settings")
     kb.adjust(1)
     return kb.as_markup()
 
