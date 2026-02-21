@@ -47,10 +47,15 @@ def menu_kb_with_sub() -> InlineKeyboardMarkup:
 
 def settings_kb(auto_renew: bool) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    auto_label = "🔄 Авто: вкл  →  выключить" if auto_renew else "🔄 Авто: выкл  →  включить"
-    kb.button(text=auto_label,             callback_data="toggle_renew")
-    kb.button(text="💳 Продлить вручную",  callback_data="buy")
-    kb.button(text="← Назад",             callback_data="menu")
+    auto_label = "Авто: вкл  →  выключить" if auto_renew else "Авто: выкл  →  включить"
+    kb.button(text=auto_label,
+              icon_custom_emoji_id="5258419835922030550",
+              callback_data="toggle_renew")
+    kb.button(text="Продлить вручную",
+              icon_custom_emoji_id="5445353829304387411",
+              callback_data="buy")
+    kb.button(text="← Назад",
+              callback_data="menu")
     kb.adjust(1)
     return kb.as_markup()
 
