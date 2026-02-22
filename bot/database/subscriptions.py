@@ -43,11 +43,11 @@ async def extend_subscription(subscription_id: int, days: int | None = None) -> 
     async with get_pool().acquire() as conn:
         await conn.execute("""
             UPDATE subscriptions
-            SET expires_at = GREATEST(expires_at, NOW()) + $1::interval,
+            SET expires_at = GREATEST(expires_at, NOW()) + $1,
                 is_active  = TRUE
             WHERE id = $2
         """,
-            f"{extend_days} days", subscription_id,
+            timedelta(days=extend_days), subscription_id,
         )
 
 

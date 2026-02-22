@@ -3,9 +3,9 @@ handlers/start.py — обработка команды /start.
 
 Поток для нового пользователя:
   1. Регистрация в БД
-  2. Создание подписки в Marzban + БД (блокирующий вызов)
-  3. Приветствие с URL подписки — отправляется ТОЛЬКО после успешного создания
-  4. Инструкция по подключению
+  2. Создание подписки в Marzban + БД
+  3. Приветствие с уведомлением о подписке
+  4. Главное меню
   5. Бонус пригласившему (если есть реферер)
 
 Поток для вернувшегося:
@@ -18,11 +18,13 @@ from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 
-from bot.database.users import get_user, register_user
-from bot.keyboards.user import instruction_kb, back_to_menu_kb
-from bot.messages import welcome_new, welcome_new_no_sub, welcome_back, instruction_text
+from bot.database.subscriptions import get_active_subscription
+from bot.database.users import get_user, register_user, get_referral_count
+from bot.keyboards.user import back_to_menu_kb, menu_kb_no_sub, menu_kb_with_sub
+from bot.messages import welcome_new, welcome_new_no_sub, welcome_back, menu_text
 from bot.services.referral import handle_referral
 from bot.services.subscription import create_gift_subscription
+from bot.utils.media import send_photo_page
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -36,6 +38,10 @@ def _parse_referrer(args: str | None) -> int | None:
         except ValueError:
             pass
     return None
+
+
+def _ref_link(bot_username: str, user_id: int) -> str:
+    return f"t.me/{bot_username}?start=ref_{user_id}"
 
 
 @router.message(CommandStart())
@@ -54,25 +60,26 @@ async def cmd_start(message: Message) -> None:
         await message.answer(welcome_back(tg_user.first_name), reply_markup=back_to_menu_kb())
         return
 
-    # Создаём подписку ДО отправки приветствия.
-    # Пользователь видит сообщение о подписке только если она реально создана.
-    sub_url: str | None = None
+    # Создаём подписку ДО отправки приветствия
     try:
-        sub_url = await create_gift_subscription(tg_user.id)
-        logger.info("Gift subscription OK for user %s, url=%s", tg_user.id, sub_url)
+        await create_gift_subscription(tg_user.id)
+        logger.info("Gift subscription OK for user %s", tg_user.id)
+        await message.answer(welcome_new(tg_user.first_name))
     except Exception as exc:
         logger.error("Gift subscription failed for user %s: %s", tg_user.id, exc)
-
-    if sub_url:
-        await message.answer(welcome_new(tg_user.first_name, sub_url))
-    else:
         await message.answer(welcome_new_no_sub(tg_user.first_name))
 
-    await message.answer(
-        instruction_text(),
-        reply_markup=instruction_kb(),
-        disable_web_page_preview=True,
+    # Показываем главное меню
+    bot_info = await message.bot.get_me()
+    sub = await get_active_subscription(tg_user.id)
+    ref_count = await get_referral_count(tg_user.id)
+    caption = menu_text(
+        sub=sub,
+        ref_link=_ref_link(bot_info.username, tg_user.id),
+        ref_count=ref_count,
     )
+    kb = menu_kb_with_sub() if sub else menu_kb_no_sub()
+    await send_photo_page(message, "menu", caption, kb)
 
     if referrer_id and referrer_id != tg_user.id:
         try:
