@@ -224,7 +224,7 @@ def extend_sub(uid):
                 SET expires_at = GREATEST(expires_at, NOW()) + $1::interval,
                     is_active  = TRUE
                 WHERE id = $2
-            """, f"{PLAN_DAYS} days", sub["id"])
+            """, timedelta(days=PLAN_DAYS), sub["id"])
         finally:
             await c.close()
         return {"ok": True}
