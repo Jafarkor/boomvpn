@@ -38,9 +38,7 @@ def welcome_back(name: str) -> str:
 def instruction_text(url: str = "") -> str:
     url_block = (
         "<b>Скопируй ссылку (нажав на нее) и вставь её в специальное приложение по инструкции:</b>\n\n"
-        f"────────────────\n"
-        f"<code>{url}</code>\n"
-        "────────────────\n\n"
+        f"<code>{url}</code>\n\n"
     ) if url else ""
 
     return (
