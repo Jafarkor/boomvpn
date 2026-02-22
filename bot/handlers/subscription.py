@@ -11,8 +11,8 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery
 
 from bot.database.subscriptions import get_active_subscription, toggle_auto_renew
-from bot.keyboards.user import settings_kb, back_to_menu_kb, instruction_kb
-from bot.messages import settings_text, sub_url_text, instruction_text
+from bot.keyboards.user import settings_kb, back_to_menu_kb
+from bot.messages import settings_text, instruction_text
 from bot.services.marzban import marzban
 from bot.utils.media import edit_photo_page
 
@@ -20,29 +20,17 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-@router.callback_query(F.data == "get_sub_url")
-async def cb_get_sub_url(callback: CallbackQuery) -> None:
-    sub = await get_active_subscription(callback.from_user.id)
-    if not sub:
-        await callback.answer("Подписка не активна", show_alert=True)
-        return
-
-    url = await marzban.get_subscription_url(sub["marzban_username"])
-    await edit_photo_page(
-        callback,
-        page="sub_url",
-        caption=sub_url_text(url),
-        reply_markup=back_to_menu_kb(),
-    )
-    await callback.answer()
-
-
 @router.callback_query(F.data == "instruction")
 async def cb_instruction(callback: CallbackQuery) -> None:
+    sub = await get_active_subscription(callback.from_user.id)
+    url = ""
+    if sub:
+        url = await marzban.get_subscription_url(sub["marzban_username"])
+
     await edit_photo_page(
         callback,
         page="instruction",
-        caption=instruction_text(),
+        caption=instruction_text(url),
         reply_markup=back_to_menu_kb(),
     )
     await callback.answer()

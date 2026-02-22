@@ -35,10 +35,17 @@ def welcome_back(name: str) -> str:
 
 # ── Инструкция по подключению ─────────────────────────────────────────────────
 
-def instruction_text() -> str:
+def instruction_text(url: str = "") -> str:
+    url_block = (
+        "<b>Твоя VPN-ссылка <i>(нажми, чтобы скопировать)</i>:</b>\n"
+        f"────────────────\n"
+        f"<code>{url}</code>\n"
+        "────────────────\n\n"
+    ) if url else ""
+
     return (
-        "<b>В боте нажми на \"<tg-emoji emoji-id=\"5877465816030515018\">🔗</tg-emoji> VPN-ссылка\" и скопируй, нажав на неё.</b>\n\n"
-        "<b>Затем, в зависимости от устройства:</b>\n\n"
+        f"{url_block}"
+        "<b>Скопируй ссылку выше и вставь её в приложение по инструкции ниже:</b>\n\n"
 
         "<tg-emoji emoji-id=\"5449665821850739918\">🍏</tg-emoji> "
         "<b>iPhone / iPad / Mac</b>\n"
@@ -54,6 +61,8 @@ def instruction_text() -> str:
         "<b>Windows</b>\n"
         "• Скачай <b>Nekoray</b> с github.com/MatsuriDayo/nekoray\n"
         "• В Nekoray: <b>«Сервер» → «Добавить по URL»</b>\n\n"
+
+        "<i>Если VPN перестал работать — открой инструкцию снова, ссылка обновится.</i>\n"
     )
 
 
