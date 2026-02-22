@@ -120,9 +120,9 @@ def settings_text(sub: dict) -> str:
 def sub_url_text(url: str) -> str:
     return (
         "<i>Нажми, чтобы скопировать.</i>\n\n"
-        "────────────────\n"
+        f"{'<tg-emoji emoji-id=\"5382261056078881010\"></tg-emoji>' * 11}\n\n"
         f"<code>{url}</code>\n"
-        "────────────────\n\n"
+        f"{'<tg-emoji emoji-id=\"5382261056078881010\"></tg-emoji>' * 11}\n\n"
         "<i>Если VPN перестал работать — просто открой меню и обнови ссылку.</i>"
     )
 
