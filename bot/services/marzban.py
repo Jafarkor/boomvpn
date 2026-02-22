@@ -99,7 +99,12 @@ class MarzbanClient:
             return data
 
     async def extend_user(self, username: str, additional_days: int) -> None:
-        """Продлевает подписку пользователя на additional_days дней."""
+        """Продлевает подписку пользователя на additional_days дней.
+
+        Важно: передаём полный набор полей (proxies, inbounds и др.) обратно
+        в PUT-запросе, иначе некоторые версии Marzban сбрасывают протоколы
+        в пустой объект и подписка перестаёт работать.
+        """
         session = self._get_session()
         headers = await self._headers()
 
@@ -111,9 +116,20 @@ class MarzbanClient:
         new_expire = max(current_expire, int(datetime.utcnow().timestamp()))
         new_expire += additional_days * 86400
 
+        # Сохраняем все текущие поля пользователя и обновляем только нужные.
+        # Без этого Marzban может сбросить proxies/inbounds в пустой объект.
+        payload = {
+            "proxies": data.get("proxies") or {"vless": {"flow": MARZBAN_FLOW}},
+            "inbounds": data.get("inbounds") or {"vless": [MARZBAN_INBOUND_TAG]},
+            "expire": new_expire,
+            "data_limit": data.get("data_limit", 0),
+            "data_limit_reset_strategy": data.get("data_limit_reset_strategy", "no_reset"),
+            "status": "active",
+        }
+
         async with session.put(
             f"/api/user/{username}",
-            json={"expire": new_expire, "status": "active"},
+            json=payload,
             headers=headers,
         ) as resp:
             resp.raise_for_status()

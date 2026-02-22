@@ -41,8 +41,10 @@ async def _grant_subscription(referrer_id: int) -> None:
         username = _marzban_username(referrer_id)
         try:
             await marzban.create_user(username, days=REFERRAL_BONUS_DAYS)
-        except Exception:
-            # Пользователь уже есть в Marzban — просто продлеваем срок
+        except ValueError:
+            # Пользователь уже есть в Marzban (409) — только продлеваем срок.
+            # Другие ошибки (сеть, авторизация) не перехватываем, чтобы
+            # они пробросились наверх и подписка не начислялась зря.
             await marzban.extend_user(username, REFERRAL_BONUS_DAYS)
 
         await create_subscription(
