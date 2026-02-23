@@ -17,7 +17,7 @@ from bot.config import (
 from bot.database import create_pool, close_pool, create_tables
 from bot.handlers import register_all_handlers
 from bot.middlewares import ThrottlingMiddleware, BanCheckMiddleware
-from bot.webhooks import register_yukassa_webhook
+from bot.webhooks import register_yukassa_webhook, register_redirect_routes
 from bot.services.scheduler import setup_scheduler
 from bot.services.marzban import marzban
 
@@ -79,6 +79,9 @@ def build_app() -> web.Application:
 
     # ЮKassa webhook
     register_yukassa_webhook(app, bot)
+
+    # Умные редиректы для инструкции
+    register_redirect_routes(app)
 
     return app
 

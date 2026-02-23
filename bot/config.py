@@ -18,6 +18,10 @@ YUKASSA_WEBHOOK_PATH: str = config("YUKASSA_WEBHOOK_PATH", default="/webhook/yuk
 
 WEBHOOK_URL: str = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
+# Базовый URL сервера — используется для генерации умных редирект-ссылок.
+# По умолчанию совпадает с хостом вебхука.
+BASE_URL: str = config("BASE_URL", default=WEBHOOK_HOST)
+
 # ── PostgreSQL ────────────────────────────────────────────────────────────────
 
 PG_DSN: str = config("PG_DSN")

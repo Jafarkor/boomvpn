@@ -5,7 +5,9 @@ bot/messages.py — все тексты бота в одном месте.
 """
 
 from datetime import datetime
-from bot.config import PLAN_PRICE, PLAN_DAYS, PLAN_NAME, GIFT_DAYS, REFERRAL_BONUS_DAYS
+from urllib.parse import quote
+
+from bot.config import PLAN_PRICE, PLAN_DAYS, PLAN_NAME, GIFT_DAYS, REFERRAL_BONUS_DAYS, BASE_URL
 
 
 # ── Приветствие ───────────────────────────────────────────────────────────────
@@ -36,31 +38,18 @@ def welcome_back(name: str) -> str:
 # ── Инструкция по подключению ─────────────────────────────────────────────────
 
 def instruction_text(url: str = "") -> str:
-    # Блок с ссылкой: текст + ссылка в цитате и моноширинном шрифте
-    url_block = (
-        "Скопируй ссылку (нажав на нее), но не переходи по ней:\n\n"
-        f"<blockquote><code>{url}</code></blockquote>\n\n"
-    ) if url else ""
+    app_link = f"{BASE_URL}/dl/app"
+    sub_link = f"{BASE_URL}/dl/sub?url={quote(url, safe='')}" if url else ""
+
+    step2 = (
+        f"2️⃣ <a href=\"{sub_link}\">Нажми на эту ссылку</a>, чтобы добавить VPN-подписку в приложение"
+        if sub_link
+        else "2️⃣ Нажми на ссылку подписки из меню, чтобы добавить VPN-подписку в приложение"
+    )
 
     return (
-        f"{url_block}"
-
-        "Дальше в зависимости от устройства:\n\n"
-
-        # iOS
-        "<tg-emoji emoji-id=\"5449665821850739918\">🍏</tg-emoji> <b>iPhone / iPad / Mac</b>\n"
-        "<blockquote><b>-</b> Скачай <a href=\"https://apps.apple.com/ru/app/streisand/id6450534064\">Streisand</a>\n"
-        "<b>- В Streisand: «+» → «Импорт из буфера»</b></blockquote>\n\n"
-
-        # Android
-        "<tg-emoji emoji-id=\"5398055016625876216\">🤖</tg-emoji> <b>Android</b>\n"
-        "<blockquote><b>-</b> Скачай <a href=\"https://play.google.com/store/apps/details?id=com.v2raytun.android\">v2RayTun</a>\n"
-        "<b>- В v2RayTun: «+» → «Импорт из буфера обмена»</b></blockquote>\n\n"
-
-        # Windows
-        "<tg-emoji emoji-id=\"5465513856035992056\">💻</tg-emoji> <b>Windows</b>\n"
-        "<blockquote><b>-</b> Скачай <a href=\"http://github.com/MatsuriDayo/nekoray\">Nekoray</a>\n"
-        "<b>- В Nekoray: «Сервер» → «Добавить по URL»</b></blockquote>"
+        f"1️⃣ Скачай <a href=\"{app_link}\">приложение</a>\n\n"
+        f"{step2}"
     )
 
 
