@@ -26,12 +26,12 @@ def menu_kb_with_sub() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
 
     kb.button(
-        text="Инструкция",
+        text="Подключить VPN",
         callback_data="instruction",
         icon_custom_emoji_id="5258503720928288433",
     )
     kb.button(
-        text="Подключить VPN",
+        text="Настройки",
         callback_data="settings",
         icon_custom_emoji_id="5258096772776991776",
     )
