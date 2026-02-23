@@ -45,6 +45,8 @@ def instruction_text(url: str = "") -> str:
     return (
         f"{url_block}"
 
+        "Дальше в зависимости от устройства:\n\n"
+
         # iOS
         "<tg-emoji emoji-id=\"5449665821850739918\">🍏</tg-emoji> <b>iPhone / iPad / Mac</b>\n"
         "<blockquote><b>-</b> Скачай <a href=\"https://apps.apple.com/ru/app/streisand/id6450534064\">Streisand</a>\n"
