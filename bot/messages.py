@@ -52,8 +52,8 @@ def instruction_text(url: str = "") -> str:
 
         # Android
         "<tg-emoji emoji-id=\"5398055016625876216\">🤖</tg-emoji> <b>Android</b>\n"
-        "<blockquote><b>-</b> Скачай <a href=\"https://play.google.com/store/apps/details?id=app.hiddify.com\">Hiddify</a>\n"
-        "<b>- В v2rayNG: «☰» → «Добавить» → «Импорт подписки»</b></blockquote>\n\n"
+        "<blockquote><b>-</b> Скачай <a href=\"https://play.google.com/store/apps/details?id=com.v2raytun.android\">v2RayTun</a>\n"
+        "<b>- В v2RayTun: «+» → «Импорт из буфера обмена»</b></blockquote>\n\n"
 
         # Windows
         "<tg-emoji emoji-id=\"5465513856035992056\">💻</tg-emoji> <b>Windows</b>\n"
