@@ -36,30 +36,30 @@ def welcome_back(name: str) -> str:
 # ── Инструкция по подключению ─────────────────────────────────────────────────
 
 def instruction_text(url: str = "") -> str:
+    # Блок с ссылкой: текст + ссылка в цитате и моноширинном шрифте
     url_block = (
-        "<b>Скопируй ссылку (нажав на нее) и вставь её в специальное приложение по инструкции:</b>\n\n"
-        f"<code>{url}</code>\n\n"
+        "Скопируй ссылку (нажав на нее), но не переходи по ней:\n\n"
+        f"<blockquote><code>{url}</code></blockquote>\n"
     ) if url else ""
 
     return (
         f"{url_block}"
 
-        "<tg-emoji emoji-id=\"5449665821850739918\">🍏</tg-emoji> "
-        "<b>iPhone / iPad / Mac</b>\n"
-        "• Скачай <b>Streisand</b> в App Store\n"
-        "• В Streisand: <b>«+» → «Импорт из буфера»</b>\n\n"
+        # iOS
+        "<tg-emoji emoji-id=\"5449665821850739918\">🍏</tg-emoji> <b>iPhone / iPad / Mac</b>\n"
+        "<blockquote><b>-</b> Скачай <a href=\"https://apps.apple.com/ru/app/streisand/id6450534064\">Streisand</a>\n"
+        "<b>- В Streisand: «+» → «Импорт из буфера»</b></blockquote>\n"
 
-        "<tg-emoji emoji-id=\"5398055016625876216\">🤖</tg-emoji> "
-        "<b>Android</b>\n"
-        "• Скачай <b>v2rayNG</b> в Google Play\n"
-        "• В v2rayNG: <b>«☰» → «Добавить» → «Импорт подписки»</b>\n\n"
+        # Android
+        "<tg-emoji emoji-id=\"5398055016625876216\">🤖</tg-emoji> <b>Android</b>\n"
+        "<blockquote><b>-</b> Скачай <a href=\"https://play.google.com/store/apps/details?id=app.hiddify.com\">Hiddify</a>\n"
+        "<b>- В v2rayNG: «☰» → «Добавить» → «Импорт подписки»</b></blockquote>\n"
 
-        "<tg-emoji emoji-id=\"5465513856035992056\">💻</tg-emoji> "
-        "<b>Windows</b>\n"
-        "• Скачай <b>Nekoray</b> с github.com/MatsuriDayo/nekoray\n"
-        "• В Nekoray: <b>«Сервер» → «Добавить по URL»</b>\n\n"
+        # Windows
+        "<tg-emoji emoji-id=\"5465513856035992056\">💻</tg-emoji> <b>Windows</b>\n"
+        "<blockquote><b>-</b> Скачай <a href=\"http://github.com/MatsuriDayo/nekoray\">Nekoray</a>\n"
+        "<b>- В Nekoray: «Сервер» → «Добавить по URL»</b></blockquote>"
     )
-
 
 
 # ── Главное меню ──────────────────────────────────────────────────────────────
