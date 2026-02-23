@@ -58,8 +58,6 @@ def instruction_text(url: str = "") -> str:
         "<b>Windows</b>\n"
         "• Скачай <b>Nekoray</b> с github.com/MatsuriDayo/nekoray\n"
         "• В Nekoray: <b>«Сервер» → «Добавить по URL»</b>\n\n"
-
-        "<i>Если VPN перестал работать — открой инструкцию снова, ссылка обновится.</i>\n"
     )
 
 
