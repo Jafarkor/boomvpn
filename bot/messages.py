@@ -46,17 +46,17 @@ def instruction_text(url: str = "") -> str:
         f"{url_block}"
 
         # iOS
-        "<tg-emoji emoji-id=\"5449665821850739918\">🍏</tg-emoji> <b>iPhone / iPad / Mac</b>\n\n"
+        "<tg-emoji emoji-id=\"5449665821850739918\">🍏</tg-emoji> <b>iPhone / iPad / Mac</b>\n"
         "<blockquote><b>-</b> Скачай <a href=\"https://apps.apple.com/ru/app/streisand/id6450534064\">Streisand</a>\n"
         "<b>- В Streisand: «+» → «Импорт из буфера»</b></blockquote>\n\n"
 
         # Android
-        "<tg-emoji emoji-id=\"5398055016625876216\">🤖</tg-emoji> <b>Android</b>\n\n"
+        "<tg-emoji emoji-id=\"5398055016625876216\">🤖</tg-emoji> <b>Android</b>\n"
         "<blockquote><b>-</b> Скачай <a href=\"https://play.google.com/store/apps/details?id=app.hiddify.com\">Hiddify</a>\n"
         "<b>- В v2rayNG: «☰» → «Добавить» → «Импорт подписки»</b></blockquote>\n\n"
 
         # Windows
-        "<tg-emoji emoji-id=\"5465513856035992056\">💻</tg-emoji> <b>Windows</b>\n\n"
+        "<tg-emoji emoji-id=\"5465513856035992056\">💻</tg-emoji> <b>Windows</b>\n"
         "<blockquote><b>-</b> Скачай <a href=\"http://github.com/MatsuriDayo/nekoray\">Nekoray</a>\n"
         "<b>- В Nekoray: «Сервер» → «Добавить по URL»</b></blockquote>"
     )
