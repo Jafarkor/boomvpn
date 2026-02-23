@@ -42,13 +42,13 @@ def instruction_text(url: str = "") -> str:
     sub_link = f"{BASE_URL}/dl/sub?url={quote(url, safe='')}" if url else ""
 
     step2 = (
-        f"2️⃣ <a href=\"{sub_link}\">Нажми на эту ссылку</a>, чтобы добавить VPN-подписку в приложение"
+        f"2️⃣ <a href=\"{sub_link}\">Нажми на эту ссылку</a>, чтобы добавить VPN-подписку в приложение</b>"
         if sub_link
-        else "2️⃣ Нажми на ссылку подписки из меню, чтобы добавить VPN-подписку в приложение"
+        else "2️⃣ Нажми на ссылку подписки из меню, чтобы добавить VPN-подписку в приложение</b>"
     )
 
     return (
-        f"1️⃣ Скачай <a href=\"{app_link}\">приложение</a>\n\n"
+        f"1️⃣ <b>Скачай <a href=\"{app_link}\">приложение</a>\n\n"
         f"{step2}"
     )
 
