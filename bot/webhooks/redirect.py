@@ -15,7 +15,7 @@ GET /dl/sub?url=<subscription_url>
 """
 
 import logging
-from urllib.parse import quote, unquote
+from urllib.parse import unquote
 
 from aiohttp import web
 
@@ -72,12 +72,12 @@ async def redirect_sub(request: web.Request) -> web.Response:
 
     if platform == "ios":
         # Streisand импортирует подписку по deep link:
-        # streisand://import/<encoded_url>
-        target = f"streisand://import/{quote(sub_url, safe='')}"
+        # streisand://import/<url> — передаём как есть, без доп. кодирования
+        target = f"streisand://import/{sub_url}"
     elif platform == "android":
         # v2RayTun импортирует подписку по deep link:
-        # v2raytun://import/<encoded_url>
-        target = f"v2raytun://import/{quote(sub_url, safe='')}"
+        # v2raytun://import/<url>
+        target = f"v2raytun://import/{sub_url}"
     else:
         # На Windows / десктопе открываем ссылку напрямую —
         # пользователь скопирует её вручную в Nekoray.
