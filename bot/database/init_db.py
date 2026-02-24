@@ -46,19 +46,6 @@ async def create_tables() -> None:
 
         await conn.execute("""
 
-        # Миграция: переименование marzban_username -> panel_username для существующих БД
-        await conn.execute("""
-            DO $$
-            BEGIN
-                IF EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_name='subscriptions' AND column_name='marzban_username'
-                ) THEN
-                    ALTER TABLE subscriptions RENAME COLUMN marzban_username TO panel_username;
-                END IF;
-            END $$;
-        """)
-
         CREATE TABLE IF NOT EXISTS referrals (
                 id          SERIAL    PRIMARY KEY,
                 referrer_id BIGINT    NOT NULL,
