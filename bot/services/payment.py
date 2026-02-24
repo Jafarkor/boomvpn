@@ -13,7 +13,7 @@ from yookassa import Configuration, Payment as YkPayment
 from bot.config import YUKASSA_SHOP_ID, YUKASSA_SECRET_KEY, PLAN_PRICE, PLAN_NAME, WEBHOOK_HOST
 from bot.database.payments import create_payment, update_payment_status, link_payment_to_subscription
 from bot.database.subscriptions import extend_subscription
-from bot.services.marzban import marzban
+from bot.services.pasarguard import pasarguard
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ async def charge_auto_renew(sub: dict[str, Any], bot: Any) -> bool:
         if payment.status == "succeeded":
             await update_payment_status(payment.id, "succeeded")
             await extend_subscription(sub["id"])
-            await marzban.extend_user(sub["marzban_username"], 30)
+            await pasarguard.extend_user(sub["panel_username"], 30)
 
             try:
                 await bot.send_message(

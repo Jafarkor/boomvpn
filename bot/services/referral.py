@@ -2,9 +2,9 @@
 services/referral.py — бизнес-логика реферальной системы.
 
 Правила:
-  • Пригласивший получает +7 дней реальной подписки:
-      - есть активная подписка → продлевается на REFERRAL_BONUS_DAYS дней
-      - подписки нет → создаётся новая на REFERRAL_BONUS_DAYS дней
+  • Пригласивший получает +REFERRAL_BONUS_DAYS дней реальной подписки:
+      - есть активная подписка → продлевается
+      - подписки нет → создаётся новая
 """
 
 import logging
@@ -19,12 +19,12 @@ from bot.database.subscriptions import (
     extend_subscription,
 )
 from bot.messages import referral_reward_text
-from bot.services.marzban import marzban
+from bot.services.pasarguard import pasarguard
 
 logger = logging.getLogger(__name__)
 
 
-def _marzban_username(user_id: int) -> str:
+def _panel_username(user_id: int) -> str:
     return f"tg_{user_id}"
 
 
@@ -34,22 +34,20 @@ async def _grant_subscription(referrer_id: int) -> None:
 
     if sub:
         await extend_subscription(sub["id"], days=REFERRAL_BONUS_DAYS)
-        await marzban.extend_user(sub["marzban_username"], REFERRAL_BONUS_DAYS)
+        await pasarguard.extend_user(sub["panel_username"], REFERRAL_BONUS_DAYS)
         logger.info("Referral: extended sub %s by %d days for user %s",
                     sub["id"], REFERRAL_BONUS_DAYS, referrer_id)
     else:
-        username = _marzban_username(referrer_id)
+        username = _panel_username(referrer_id)
         try:
-            await marzban.create_user(username, days=REFERRAL_BONUS_DAYS)
+            await pasarguard.create_user(username, days=REFERRAL_BONUS_DAYS)
         except ValueError:
-            # Пользователь уже есть в Marzban (409) — только продлеваем срок.
-            # Другие ошибки (сеть, авторизация) не перехватываем, чтобы
-            # они пробросились наверх и подписка не начислялась зря.
-            await marzban.extend_user(username, REFERRAL_BONUS_DAYS)
+            # Пользователь уже есть в PasarGuard (409) — только продлеваем срок.
+            await pasarguard.extend_user(username, REFERRAL_BONUS_DAYS)
 
         await create_subscription(
             user_id=referrer_id,
-            marzban_username=username,
+            panel_username=username,
             payment_method_id=None,
             days=REFERRAL_BONUS_DAYS,
             auto_renew=False,

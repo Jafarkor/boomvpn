@@ -19,7 +19,7 @@ from bot.handlers import register_all_handlers
 from bot.middlewares import ThrottlingMiddleware, BanCheckMiddleware
 from bot.webhooks import register_yukassa_webhook, register_redirect_routes
 from bot.services.scheduler import setup_scheduler
-from bot.services.marzban import marzban
+from bot.services.pasarguard import pasarguard
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,7 +40,7 @@ async def on_startup(bot: Bot, redis: Redis) -> None:
 async def on_shutdown(bot: Bot) -> None:
     """Выполняется при остановке: очищаем ресурсы."""
     await bot.delete_webhook()
-    await marzban.close()
+    await pasarguard.close()
     await close_pool()
     logger.info("Bot shutdown complete")
 

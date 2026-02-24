@@ -24,7 +24,7 @@ async def create_tables() -> None:
             CREATE TABLE IF NOT EXISTS subscriptions (
                 id                        SERIAL    PRIMARY KEY,
                 user_id                   BIGINT    NOT NULL,
-                marzban_username          TEXT      NOT NULL,
+                panel_username            TEXT      NOT NULL,
                 expires_at                TIMESTAMP NOT NULL,
                 is_active                 BOOLEAN   NOT NULL DEFAULT TRUE,
                 yukassa_payment_method_id TEXT,
@@ -45,7 +45,21 @@ async def create_tables() -> None:
         """)
 
         await conn.execute("""
-            CREATE TABLE IF NOT EXISTS referrals (
+
+        # Миграция: переименование marzban_username -> panel_username для существующих БД
+        await conn.execute("""
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name='subscriptions' AND column_name='marzban_username'
+                ) THEN
+                    ALTER TABLE subscriptions RENAME COLUMN marzban_username TO panel_username;
+                END IF;
+            END $$;
+        """)
+
+        CREATE TABLE IF NOT EXISTS referrals (
                 id          SERIAL    PRIMARY KEY,
                 referrer_id BIGINT    NOT NULL,
                 referred_id BIGINT    NOT NULL UNIQUE,
