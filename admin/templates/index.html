@@ -856,7 +856,7 @@ async function showUser(uid) {
     const ok = s.is_active && new Date(s.expires_at) > new Date();
     return `<tr>
       <td>#${s.id}</td>
-      <td style="word-break:break-all"><code style="font-size:10px">${esc(s.marzban_username)}</code></td>
+      <td style="word-break:break-all"><code style="font-size:10px">${esc(s.panel_username)}</code></td>
       <td><span class="bd ${ok?'g':'r'}">${ok?'Активна':'Истекла'}</span></td>
       <td style="white-space:nowrap">${fmtD(s.expires_at)}</td>
     </tr>`;
@@ -885,7 +885,7 @@ async function showUser(uid) {
     <div class="ir"><span class="il">Потрачено</span><span class="iv">${fmtM(u.total_spent)}</span></div>
     <div class="mo-sect">Подписки</div>
     <table class="mini-t">
-      <thead><tr><th>ID</th><th>Marzban</th><th>Статус</th><th>Истекает</th></tr></thead>
+      <thead><tr><th>ID</th><th>PasarGuard</th><th>Статус</th><th>Истекает</th></tr></thead>
       <tbody>${subRows}</tbody>
     </table>
     <div class="mo-sect">Платежи</div>
@@ -912,7 +912,7 @@ function confirmGrant(uid, name) {
     <div class="mo-handle"></div>
     <div class="confirm-ico">🎁</div>
     <div class="mo-title" style="text-align:center;margin-bottom:8px">Выдать подписку</div>
-    <div class="confirm-msg">Будет создан пользователь в Marzban<br>и добавлена подписка для <b>${esc(name)}</b></div>
+    <div class="confirm-msg">Будет создан пользователь в PasarGuard<br>и добавлена подписка для <b>${esc(name)}</b></div>
     <div class="mo-btns">
       <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
       <button class="btn btn-grn btn-lg" id="cb" onclick="doGrant(${uid})">✓ Выдать</button>
@@ -924,7 +924,7 @@ function confirmExtend(uid, name) {
     <div class="mo-handle"></div>
     <div class="confirm-ico">➕</div>
     <div class="mo-title" style="text-align:center;margin-bottom:8px">Продлить подписку</div>
-    <div class="confirm-msg">Подписка будет продлена в Marzban и БД<br>для <b>${esc(name)}</b></div>
+    <div class="confirm-msg">Подписка будет продлена в PasarGuard и БД<br>для <b>${esc(name)}</b></div>
     <div class="mo-btns">
       <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
       <button class="btn btn-acc btn-lg" id="cb" onclick="doExtend(${uid})">✓ Продлить</button>
@@ -938,7 +938,7 @@ function confirmDisable(uid, name) {
     <div class="mo-title" style="text-align:center;margin-bottom:8px">Отключить подписку</div>
     <div class="confirm-msg">Подписка <b>${esc(name)}</b> будет деактивирована</div>
     <label class="chk-row">
-      <input type="checkbox" id="del-mz"> Удалить из Marzban
+      <input type="checkbox" id="del-mz"> Удалить из PasarGuard
     </label>
     <div class="mo-btns">
       <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
@@ -956,7 +956,7 @@ function confirmDelete(uid, name) {
       из базы данных вместе со всеми подписками и платежами.
     </div>
     <label class="chk-row">
-      <input type="checkbox" id="del-mz-full"> Удалить из Marzban
+      <input type="checkbox" id="del-mz-full"> Удалить из PasarGuard
     </label>
     <div class="mo-btns">
       <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
@@ -981,7 +981,7 @@ async function doExtend(uid) {
 async function doDisable(uid) {
   const del = $('del-mz')?.checked || false;
   btnLoad('cb');
-  const d = await api('/users/'+uid+'/sub/disable', {method:'POST', body:{delete_marzban:del}});
+  const d = await api('/users/'+uid+'/sub/disable', {method:'POST', body:{delete_panel:del}});
   closeMo();
   d.error ? toast(d.error, 'err') : (toast('Подписка отключена'), renderUsers());
 }
@@ -992,7 +992,7 @@ async function doBan(uid, banned) {
 async function doDelete(uid) {
   const del = $('del-mz-full')?.checked || false;
   btnLoad('cb');
-  const d = await api('/users/'+uid, {method:'DELETE', body:{delete_marzban:del}});
+  const d = await api('/users/'+uid, {method:'DELETE', body:{delete_panel:del}});
   closeMo();
   d.error ? toast(d.error, 'err') : (toast('🗑 Пользователь удалён'), renderUsers());
 }

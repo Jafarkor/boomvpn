@@ -6,7 +6,7 @@ import os
 from datetime import datetime, timedelta, date
 from flask import Blueprint, jsonify, request
 from db import run, conn, row, rows
-import marzban as mz
+import pasarguard as pg
 
 bp = Blueprint("users", __name__)
 
@@ -15,16 +15,16 @@ PLAN_DAYS: int = int(os.environ.get("PLAN_DAYS", "30"))
 _BASE = """
 SELECT
     u.user_id, u.username, u.first_name, u.is_banned, u.registered_at,
-    s.id        AS sub_id,
-    s.marzban_username,
+    s.id         AS sub_id,
+    s.panel_username,
     s.expires_at,
-    s.is_active AS sub_active,
+    s.is_active  AS sub_active,
     s.auto_renew,
     COALESCE(p.total_spent, 0) AS total_spent,
     COALESCE(p.pay_count, 0)   AS pay_count
 FROM users u
 LEFT JOIN LATERAL (
-    SELECT id, marzban_username, expires_at, is_active, auto_renew
+    SELECT id, panel_username, expires_at, is_active, auto_renew
     FROM subscriptions WHERE user_id = u.user_id
     ORDER BY id DESC LIMIT 1
 ) s ON true
@@ -181,22 +181,22 @@ def ban_user(uid):
 @bp.post("/users/<int:uid>/sub/grant")
 def grant_sub(uid):
     async def _():
-        mz_user     = await mz.create_user(uid)
-        mz_username = mz_user["username"]
-        link        = next((l for l in mz_user.get("links", []) if l.startswith("vless://")), None)
-        expires_at  = datetime.utcnow() + timedelta(days=PLAN_DAYS)
+        pg_user      = await pg.create_user(uid)
+        panel_uname  = pg_user["username"]
+        link         = next((l for l in pg_user.get("links", []) if l.startswith("vless://")), None)
+        expires_at   = datetime.utcnow() + timedelta(days=PLAN_DAYS)
 
         c = await conn()
         try:
             sub_id = await c.fetchval("""
                 INSERT INTO subscriptions
-                    (user_id, marzban_username, expires_at, is_active, auto_renew)
+                    (user_id, panel_username, expires_at, is_active, auto_renew)
                 VALUES ($1, $2, $3, TRUE, TRUE) RETURNING id
-            """, uid, mz_username, expires_at)
+            """, uid, panel_uname, expires_at)
         finally:
             await c.close()
 
-        return {"ok": True, "sub_id": sub_id, "marzban_username": mz_username, "link": link}
+        return {"ok": True, "sub_id": sub_id, "panel_username": panel_uname, "link": link}
 
     try:
         return jsonify(run(_()))
@@ -212,13 +212,13 @@ def extend_sub(uid):
         c = await conn()
         try:
             sub = await c.fetchrow(
-                "SELECT id, marzban_username FROM subscriptions "
+                "SELECT id, panel_username FROM subscriptions "
                 "WHERE user_id=$1 ORDER BY id DESC LIMIT 1",
                 uid,
             )
             if not sub:
                 return {"error": "Подписка не найдена"}
-            await mz.extend_user(sub["marzban_username"])
+            await pg.extend_user(sub["panel_username"])
             await c.execute("""
                 UPDATE subscriptions
                 SET expires_at = GREATEST(expires_at, NOW()) + $1::interval,
@@ -239,13 +239,13 @@ def extend_sub(uid):
 
 @bp.delete("/users/<int:uid>")
 def delete_user(uid):
-    delete_from_marzban = (request.json or {}).get("delete_marzban", False)
+    delete_from_panel = (request.json or {}).get("delete_panel", False)
 
     async def _():
         c = await conn()
         try:
             sub = await c.fetchrow(
-                "SELECT marzban_username FROM subscriptions "
+                "SELECT panel_username FROM subscriptions "
                 "WHERE user_id=$1 ORDER BY id DESC LIMIT 1",
                 uid,
             )
@@ -260,9 +260,9 @@ def delete_user(uid):
         if not deleted:
             return {"error": "Пользователь не найден"}
 
-        if delete_from_marzban and sub and sub["marzban_username"]:
+        if delete_from_panel and sub and sub["panel_username"]:
             try:
-                await mz.delete_user(sub["marzban_username"])
+                await pg.delete_user(sub["panel_username"])
             except Exception:
                 pass
 
@@ -281,13 +281,13 @@ def delete_user(uid):
 
 @bp.post("/users/<int:uid>/sub/disable")
 def disable_sub(uid):
-    delete_from_marzban = (request.json or {}).get("delete_marzban", False)
+    delete_from_panel = (request.json or {}).get("delete_panel", False)
 
     async def _():
         c = await conn()
         try:
             sub = await c.fetchrow("""
-                SELECT id, marzban_username FROM subscriptions
+                SELECT id, panel_username FROM subscriptions
                 WHERE user_id=$1 AND is_active=TRUE ORDER BY id DESC LIMIT 1
             """, uid)
             if not sub:
@@ -296,9 +296,9 @@ def disable_sub(uid):
         finally:
             await c.close()
 
-        if delete_from_marzban:
+        if delete_from_panel:
             try:
-                await mz.delete_user(sub["marzban_username"])
+                await pg.delete_user(sub["panel_username"])
             except Exception:
                 pass
 
