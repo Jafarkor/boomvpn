@@ -102,8 +102,10 @@ class PasarGuardClient:
         """
         Продлевает подписку пользователя на additional_days дней.
 
-        Передаём полный набор полей обратно в PUT-запросе, чтобы PasarGuard
-        не сбросил proxies/inbounds в пустой объект.
+        ИСПРАВЛЕНО: явно проверяем наличие vless-ключа в proxies/inbounds,
+        т.к. пустой dict является truthy и fallback через `or` не срабатывал.
+        Это приводило к тому, что PUT отправлял пустые proxies/inbounds,
+        и PasarGuard сохранял подписку без конфигурации.
         """
         session = self._get_session()
         headers = await self._headers()
@@ -116,9 +118,25 @@ class PasarGuardClient:
         new_expire = max(current_expire, int(datetime.utcnow().timestamp()))
         new_expire += additional_days * 86400
 
+        # ИСПРАВЛЕНИЕ: пустой dict ({}) — truthy, поэтому `data.get(...) or fallback`
+        # не работает. Явно проверяем наличие ключа "vless" внутри словаря.
+        existing_proxies = data.get("proxies") or {}
+        existing_inbounds = data.get("inbounds") or {}
+
+        proxies = (
+            existing_proxies
+            if existing_proxies.get("vless")
+            else {"vless": {"flow": PASARGUARD_FLOW}}
+        )
+        inbounds = (
+            existing_inbounds
+            if existing_inbounds.get("vless")
+            else {"vless": [PASARGUARD_INBOUND_TAG]}
+        )
+
         payload = {
-            "proxies": data.get("proxies") or {"vless": {"flow": PASARGUARD_FLOW}},
-            "inbounds": data.get("inbounds") or {"vless": [PASARGUARD_INBOUND_TAG]},
+            "proxies": proxies,
+            "inbounds": inbounds,
             "expire": new_expire,
             "data_limit": data.get("data_limit", 0),
             "data_limit_reset_strategy": data.get("data_limit_reset_strategy", "no_reset"),

@@ -28,8 +28,15 @@ async def create_tables() -> None:
                 expires_at                TIMESTAMP NOT NULL,
                 is_active                 BOOLEAN   NOT NULL DEFAULT TRUE,
                 yukassa_payment_method_id TEXT,
-                auto_renew                BOOLEAN   NOT NULL DEFAULT TRUE
+                auto_renew                BOOLEAN   NOT NULL DEFAULT TRUE,
+                subscription_url          TEXT
             )
+        """)
+
+        # Идемпотентная миграция для существующих БД —
+        # добавляем колонку subscription_url если её ещё нет
+        await conn.execute("""
+            ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS subscription_url TEXT
         """)
 
         await conn.execute("""

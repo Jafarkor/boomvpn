@@ -12,7 +12,7 @@ from aiogram.types import CallbackQuery
 from bot.database.subscriptions import get_active_subscription, toggle_auto_renew
 from bot.keyboards.user import settings_kb, back_to_menu_kb
 from bot.messages import settings_text, instruction_text
-from bot.services.pasarguard import pasarguard
+from bot.services.subscription import get_subscription_url
 from bot.utils.media import edit_photo_page
 
 logger = logging.getLogger(__name__)
@@ -21,10 +21,10 @@ router = Router()
 
 @router.callback_query(F.data == "instruction")
 async def cb_instruction(callback: CallbackQuery) -> None:
-    sub = await get_active_subscription(callback.from_user.id)
-    url = ""
-    if sub:
-        url = await pasarguard.get_subscription_url(sub["panel_username"])
+    # ИСПРАВЛЕНО: используем get_subscription_url из services/subscription.py,
+    # который берёт URL из БД, а не запрашивает из PasarGuard каждый раз.
+    # Это гарантирует стабильность ссылки между нажатиями кнопки.
+    url = await get_subscription_url(callback.from_user.id) or ""
 
     await edit_photo_page(
         callback,
