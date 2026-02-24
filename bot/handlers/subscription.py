@@ -1,8 +1,7 @@
 """
 handlers/subscription.py — ссылка подписки, инструкция, настройки, автопродление.
 
-Все экраны отображаются как фото с caption (через edit_photo_page),
-чтобы при возврате в меню можно было редактировать одно сообщение.
+Все экраны отображаются как фото с caption (через edit_photo_page).
 """
 
 import logging
@@ -13,7 +12,7 @@ from aiogram.types import CallbackQuery
 from bot.database.subscriptions import get_active_subscription, toggle_auto_renew
 from bot.keyboards.user import settings_kb, back_to_menu_kb
 from bot.messages import settings_text, instruction_text
-from bot.services.marzban import marzban
+from bot.services.pasarguard import pasarguard
 from bot.utils.media import edit_photo_page
 
 logger = logging.getLogger(__name__)
@@ -25,7 +24,7 @@ async def cb_instruction(callback: CallbackQuery) -> None:
     sub = await get_active_subscription(callback.from_user.id)
     url = ""
     if sub:
-        url = await marzban.get_subscription_url(sub["marzban_username"])
+        url = await pasarguard.get_subscription_url(sub["panel_username"])
 
     await edit_photo_page(
         callback,

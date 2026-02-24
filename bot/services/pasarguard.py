@@ -1,7 +1,8 @@
 """
-services/marzban.py — клиент для работы с Marzban API.
+services/pasarguard.py — клиент для работы с PasarGuard API.
 
-Все обращения к Marzban идут через этот модуль.
+PasarGuard — форк Marzban с идентичным REST API.
+Все обращения к PasarGuard идут через этот модуль.
 """
 
 import logging
@@ -11,11 +12,11 @@ from typing import Any
 import aiohttp
 
 from bot.config import (
-    MARZBAN_URL,
-    MARZBAN_USERNAME,
-    MARZBAN_PASSWORD,
-    MARZBAN_INBOUND_TAG,
-    MARZBAN_FLOW,
+    PASARGUARD_URL,
+    PASARGUARD_USERNAME,
+    PASARGUARD_PASSWORD,
+    PASARGUARD_INBOUND_TAG,
+    PASARGUARD_FLOW,
 )
 
 logger = logging.getLogger(__name__)
@@ -24,8 +25,8 @@ _TOKEN: str | None = None
 _TOKEN_EXPIRES: datetime = datetime.min
 
 
-class MarzbanClient:
-    """Тонкий клиент к Marzban REST API с автообновлением токена."""
+class PasarGuardClient:
+    """Тонкий клиент к PasarGuard REST API с автообновлением токена."""
 
     def __init__(self) -> None:
         self._session: aiohttp.ClientSession | None = None
@@ -34,7 +35,7 @@ class MarzbanClient:
 
     def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession(base_url=MARZBAN_URL)
+            self._session = aiohttp.ClientSession(base_url=PASARGUARD_URL)
         return self._session
 
     async def close(self) -> None:
@@ -51,7 +52,7 @@ class MarzbanClient:
         session = self._get_session()
         async with session.post(
             "/api/admin/token",
-            data={"username": MARZBAN_USERNAME, "password": MARZBAN_PASSWORD},
+            data={"username": PASARGUARD_USERNAME, "password": PASARGUARD_PASSWORD},
         ) as resp:
             resp.raise_for_status()
             data = await resp.json()
@@ -68,20 +69,19 @@ class MarzbanClient:
 
     async def create_user(self, username: str, days: int) -> dict[str, Any]:
         """
-        Создаёт пользователя в Marzban и возвращает данные.
+        Создаёт пользователя в PasarGuard и возвращает данные.
 
-        Важно: не передаём 'id' в proxies — Marzban генерирует UUID автоматически.
-        Передача null вместо UUID ломает подписку в некоторых версиях Marzban.
+        PasarGuard генерирует UUID автоматически — не передаём id в proxies.
         """
         expire_ts = int((datetime.utcnow() + timedelta(days=days)).timestamp())
         payload = {
             "username": username,
             "proxies": {
                 "vless": {
-                    "flow": MARZBAN_FLOW,
+                    "flow": PASARGUARD_FLOW,
                 }
             },
-            "inbounds": {"vless": [MARZBAN_INBOUND_TAG]},
+            "inbounds": {"vless": [PASARGUARD_INBOUND_TAG]},
             "expire": expire_ts,
             "data_limit": 0,
             "data_limit_reset_strategy": "no_reset",
@@ -92,18 +92,18 @@ class MarzbanClient:
             "/api/user", json=payload, headers=await self._headers()
         ) as resp:
             if resp.status == 409:
-                raise ValueError(f"User '{username}' already exists in Marzban")
+                raise ValueError(f"User '{username}' already exists in PasarGuard")
             resp.raise_for_status()
             data = await resp.json()
-            logger.info("Marzban: created user '%s' for %d days", username, days)
+            logger.info("PasarGuard: created user '%s' for %d days", username, days)
             return data
 
     async def extend_user(self, username: str, additional_days: int) -> None:
-        """Продлевает подписку пользователя на additional_days дней.
+        """
+        Продлевает подписку пользователя на additional_days дней.
 
-        Важно: передаём полный набор полей (proxies, inbounds и др.) обратно
-        в PUT-запросе, иначе некоторые версии Marzban сбрасывают протоколы
-        в пустой объект и подписка перестаёт работать.
+        Передаём полный набор полей обратно в PUT-запросе, чтобы PasarGuard
+        не сбросил proxies/inbounds в пустой объект.
         """
         session = self._get_session()
         headers = await self._headers()
@@ -116,11 +116,9 @@ class MarzbanClient:
         new_expire = max(current_expire, int(datetime.utcnow().timestamp()))
         new_expire += additional_days * 86400
 
-        # Сохраняем все текущие поля пользователя и обновляем только нужные.
-        # Без этого Marzban может сбросить proxies/inbounds в пустой объект.
         payload = {
-            "proxies": data.get("proxies") or {"vless": {"flow": MARZBAN_FLOW}},
-            "inbounds": data.get("inbounds") or {"vless": [MARZBAN_INBOUND_TAG]},
+            "proxies": data.get("proxies") or {"vless": {"flow": PASARGUARD_FLOW}},
+            "inbounds": data.get("inbounds") or {"vless": [PASARGUARD_INBOUND_TAG]},
             "expire": new_expire,
             "data_limit": data.get("data_limit", 0),
             "data_limit_reset_strategy": data.get("data_limit_reset_strategy", "no_reset"),
@@ -133,12 +131,14 @@ class MarzbanClient:
             headers=headers,
         ) as resp:
             resp.raise_for_status()
-            logger.info("Marzban: extended user '%s' by %d days", username, additional_days)
+            logger.info(
+                "PasarGuard: extended user '%s' by %d days", username, additional_days
+            )
 
     async def get_subscription_url(self, username: str) -> str:
         """
-        Возвращает полную ссылку подписки из Marzban API.
-        Marzban может вернуть относительный путь — добавляем базовый URL.
+        Возвращает полную ссылку подписки из PasarGuard API.
+        Если панель вернула относительный путь — добавляем базовый URL.
         """
         session = self._get_session()
         async with session.get(
@@ -148,13 +148,12 @@ class MarzbanClient:
             data = await resp.json()
 
         path = data["subscription_url"]
-        # Если Marzban вернул относительный путь — добавляем базу
         if path.startswith("/"):
-            return f"{MARZBAN_URL.rstrip('/')}{path}"
+            return f"{PASARGUARD_URL.rstrip('/')}{path}"
         return path
 
     async def delete_user(self, username: str) -> None:
-        """Удаляет пользователя из Marzban."""
+        """Удаляет пользователя из PasarGuard."""
         session = self._get_session()
         async with session.delete(
             f"/api/user/{username}", headers=await self._headers()
@@ -164,4 +163,4 @@ class MarzbanClient:
 
 
 # Глобальный экземпляр — используется во всём проекте
-marzban = MarzbanClient()
+pasarguard = PasarGuardClient()

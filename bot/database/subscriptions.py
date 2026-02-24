@@ -16,7 +16,7 @@ async def get_active_subscription(user_id: int) -> dict | None:
 
 async def create_subscription(
     user_id: int,
-    marzban_username: str,
+    panel_username: str,
     payment_method_id: str | None = None,
     days: int | None = None,
     auto_renew: bool = True,
@@ -27,12 +27,12 @@ async def create_subscription(
     async with get_pool().acquire() as conn:
         sub_id = await conn.fetchval("""
             INSERT INTO subscriptions
-                (user_id, marzban_username, expires_at, is_active,
+                (user_id, panel_username, expires_at, is_active,
                  yukassa_payment_method_id, auto_renew)
             VALUES ($1, $2, $3, TRUE, $4, $5)
             RETURNING id
         """,
-            user_id, marzban_username, expires_at, payment_method_id, auto_renew,
+            user_id, panel_username, expires_at, payment_method_id, auto_renew,
         )
     return sub_id
 
