@@ -17,14 +17,12 @@ from bot.config import (
     PASARGUARD_PASSWORD,
     PASARGUARD_INBOUND_TAG,
     PASARGUARD_FLOW,
-    PASARGUARD_USER_GROUP,
 )
 
 logger = logging.getLogger(__name__)
 
 _TOKEN: str | None = None
 _TOKEN_EXPIRES: datetime = datetime.min
-_GROUP_ID_CACHE: dict[str, int] = {}  # кеш: name → id
 
 
 class PasarGuardClient:
@@ -67,36 +65,6 @@ class PasarGuardClient:
         token = await self._get_token()
         return {"Authorization": f"Bearer {token}"}
 
-    # ── Группы пользователей ──────────────────────────────────────────────────
-
-    async def get_group_id(self, group_name: str) -> int | None:
-        """
-        Возвращает ID группы по её имени.
-        Результат кешируется на время жизни процесса.
-        Если группа не найдена — возвращает None и пишет WARNING.
-        """
-        if group_name in _GROUP_ID_CACHE:
-            return _GROUP_ID_CACHE[group_name]
-
-        session = self._get_session()
-        async with session.get(
-            "/api/user_groups", headers=await self._headers()
-        ) as resp:
-            resp.raise_for_status()
-            data = await resp.json()
-
-        # PasarGuard возвращает {"user_groups": [...]} или просто список
-        groups = data.get("user_groups", data) if isinstance(data, dict) else data
-        for g in groups:
-            _GROUP_ID_CACHE[g["name"]] = g["id"]
-
-        group_id = _GROUP_ID_CACHE.get(group_name)
-        if group_id is None:
-            logger.warning(
-                "PasarGuard: group '%s' not found. User will be created without group.", group_name
-            )
-        return group_id
-
     # ── Пользователи ──────────────────────────────────────────────────────────
 
     async def create_user(self, username: str, days: int) -> dict[str, Any]:
@@ -104,18 +72,8 @@ class PasarGuardClient:
         Создаёт пользователя в PasarGuard и возвращает данные.
 
         PasarGuard генерирует UUID автоматически — не передаём id в proxies.
-        Пользователь автоматически добавляется в группу PASARGUARD_USER_GROUP (по умолчанию "ALL").
         """
         expire_ts = int((datetime.utcnow() + timedelta(days=days)).timestamp())
-
-        # Получаем ID группы (с кешем, безопасно при ошибке)
-        group_id = None
-        if PASARGUARD_USER_GROUP:
-            try:
-                group_id = await self.get_group_id(PASARGUARD_USER_GROUP)
-            except Exception as exc:
-                logger.warning("Could not fetch group id for '%s': %s", PASARGUARD_USER_GROUP, exc)
-
         payload = {
             "username": username,
             "proxies": {
@@ -128,11 +86,8 @@ class PasarGuardClient:
             "data_limit": 0,
             "data_limit_reset_strategy": "no_reset",
             "status": "active",
+            "group_ids": [1],  # Группа "ALL" — даёт доступ ко всем серверам
         }
-
-        if group_id is not None:
-            payload["group_ids"] = [group_id]
-
         session = self._get_session()
         async with session.post(
             "/api/user", json=payload, headers=await self._headers()
@@ -141,10 +96,7 @@ class PasarGuardClient:
                 raise ValueError(f"User '{username}' already exists in PasarGuard")
             resp.raise_for_status()
             data = await resp.json()
-            logger.info(
-                "PasarGuard: created user '%s' for %d days (group: %s)",
-                username, days, PASARGUARD_USER_GROUP or "none",
-            )
+            logger.info("PasarGuard: created user '%s' for %d days", username, days)
             return data
 
     async def extend_user(self, username: str, additional_days: int) -> None:
