@@ -46,6 +46,7 @@ async def create_user(uid: int) -> dict:
         "expire": expire_ts,
         "data_limit": 0,
         "data_limit_reset_strategy": "no_reset",
+        "group_ids": [1],  # Группа "ALL" — даёт доступ ко всем серверам
     }
     async with aiohttp.ClientSession() as s:
         token = await _token(s)
