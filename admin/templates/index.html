@@ -1268,6 +1268,7 @@ async function doAdjust(uid, curTs) {
 }
 
 
+async function doBan(uid, banned) {
   const d = await api('/users/'+uid+'/ban', {method:'POST', body:{banned}});
   if (d.ok) { toast(banned?'Забанен':'Разбанен', banned?'err':'ok'); closeMo(); renderUsers(); }
 }
