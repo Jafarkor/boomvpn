@@ -23,6 +23,28 @@ def _gen_username(uid: int) -> str:
     return f"u{uid}_{suffix}"
 
 
+
+def _parse_expire(value) -> int:
+    """
+    PasarGuard может вернуть expire как Unix timestamp (int/float/str)
+    или как ISO-строку ('2026-03-04T19:34:50Z'). Конвертируем оба варианта.
+    """
+    if not value:
+        return int(__import__('datetime').datetime.utcnow().timestamp())
+    s = str(value).strip()
+    # Если строка содержит буквы — скорее всего ISO-формат
+    if any(c.isalpha() for c in s):
+        from datetime import datetime, timezone
+        for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S%z"):
+            try:
+                dt = datetime.strptime(s.replace("+00:00", "Z").replace("Z", ""), 
+                                       fmt.rstrip("Z").rstrip("%z"))
+                return int(dt.replace(tzinfo=timezone.utc).timestamp())
+            except ValueError:
+                continue
+    return int(float(s))
+
+
 async def _token(session: aiohttp.ClientSession) -> str:
     async with session.post(
         f"{PASARGUARD_URL}/api/admin/token",
@@ -65,8 +87,7 @@ async def extend_user(username: str, extra_days: int = PLAN_DAYS) -> None:
         async with s.get(f"{PASARGUARD_URL}/api/user/{username}", headers=h) as r:
             r.raise_for_status()
             user = await r.json()
-        raw_expire = user.get("expire")
-        current = int(raw_expire) if raw_expire else int(datetime.utcnow().timestamp())
+        current = _parse_expire(user.get("expire"))
         new_exp = max(current, int(datetime.utcnow().timestamp())) + extra_days * 86400
         # Передаём все поля пользователя чтобы PasarGuard не сбросил proxies/inbounds
         payload = {

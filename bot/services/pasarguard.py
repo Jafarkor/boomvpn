@@ -25,6 +25,27 @@ _TOKEN: str | None = None
 _TOKEN_EXPIRES: datetime = datetime.min
 
 
+
+def _parse_expire(value) -> int:
+    """
+    PasarGuard может вернуть expire как Unix timestamp (int/float/str)
+    или как ISO-строку ('2026-03-04T19:34:50Z'). Конвертируем оба варианта.
+    """
+    if not value:
+        return int(__import__('datetime').datetime.utcnow().timestamp())
+    s = str(value).strip()
+    # Если строка содержит буквы — скорее всего ISO-формат
+    if any(c.isalpha() for c in s):
+        from datetime import datetime, timezone
+        for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S%z"):
+            try:
+                dt = datetime.strptime(s.replace("+00:00", "Z").replace("Z", ""), 
+                                       fmt.rstrip("Z").rstrip("%z"))
+                return int(dt.replace(tzinfo=timezone.utc).timestamp())
+            except ValueError:
+                continue
+    return int(float(s))
+
 class PasarGuardClient:
     """Тонкий клиент к PasarGuard REST API с автообновлением токена."""
 
@@ -149,8 +170,7 @@ class PasarGuardClient:
             await self.create_user(username, days=additional_days)
             return
 
-        raw_expire = data.get("expire")
-        current_expire = int(raw_expire) if raw_expire else int(datetime.utcnow().timestamp())
+        current_expire = _parse_expire(data.get("expire"))
         new_expire = max(current_expire, int(datetime.utcnow().timestamp()))
         new_expire += additional_days * 86400
 
