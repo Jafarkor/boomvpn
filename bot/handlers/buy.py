@@ -24,36 +24,12 @@ router = Router()
 _pending: dict[int, str] = {}
 
 
-@router.callback_query(F.data == "buy")
-async def cb_buy(callback: CallbackQuery) -> None:
-    user_id = callback.from_user.id
-
-    try:
-        payment_id, url = await create_payment_link(user_id)
-    except Exception as exc:
-        logger.error("Payment creation error for %s: %s", user_id, exc)
-        await callback.answer("Не удалось создать платёж. Попробуй позже.", show_alert=True)
-        return
-
-    _pending[user_id] = payment_id
-    await edit_photo_page(
-        callback,
-        page="buy",
-        caption=buy_text(),
-        reply_markup=pay_kb(url),
-    )
-    await callback.answer()
-
-
-@router.callback_query(F.data == "check_payment")
-async def cb_check_payment(callback: CallbackQuery) -> None:
-    user_id = callback.from_user.id
-    payment_id = _pending.get(user_id)
-
-    if not payment_id:
-        await callback.answer("Нет активного платежа. Начни заново.", show_alert=True)
-        return
-
+async def _process_check_payment(callback: CallbackQuery, user_id: int, payment_id: str) -> None:
+    """
+    Общая логика проверки статуса платежа ЮКассы.
+    Используется как для ручной проверки (кнопка «Проверить»),
+    так и для прямого списания через сохранённый СБП-метод.
+    """
     try:
         yk_payment = YkPayment.find_one(payment_id)
     except Exception as exc:
@@ -101,4 +77,46 @@ async def cb_check_payment(callback: CallbackQuery) -> None:
         )
 
     else:
+        # Платёж ещё в обработке (pending) — просим подождать
         await callback.answer("Оплата ещё не подтверждена. Подождите немного.", show_alert=True)
+
+
+@router.callback_query(F.data == "buy")
+async def cb_buy(callback: CallbackQuery) -> None:
+    user_id = callback.from_user.id
+
+    try:
+        payment_id, url = await create_payment_link(user_id)
+    except Exception as exc:
+        logger.error("Payment creation error for %s: %s", user_id, exc)
+        await callback.answer("Не удалось создать платёж. Попробуй позже.", show_alert=True)
+        return
+
+    _pending[user_id] = payment_id
+
+    if url is None:
+        # Сохранённый СБП-метод — прямое списание без редиректа.
+        # Сразу проверяем статус: платёж либо уже succeeded, либо pending.
+        await callback.answer()
+        await _process_check_payment(callback, user_id, payment_id)
+    else:
+        # Первая оплата — редирект в банк-приложение пользователя.
+        await edit_photo_page(
+            callback,
+            page="buy",
+            caption=buy_text(),
+            reply_markup=pay_kb(url),
+        )
+        await callback.answer()
+
+
+@router.callback_query(F.data == "check_payment")
+async def cb_check_payment(callback: CallbackQuery) -> None:
+    user_id = callback.from_user.id
+    payment_id = _pending.get(user_id)
+
+    if not payment_id:
+        await callback.answer("Нет активного платежа. Начни заново.", show_alert=True)
+        return
+
+    await _process_check_payment(callback, user_id, payment_id)

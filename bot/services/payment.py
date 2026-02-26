@@ -23,29 +23,61 @@ Configuration.secret_key = YUKASSA_SECRET_KEY
 RETURN_URL = f"{WEBHOOK_HOST}/payment/success"
 
 
-async def create_payment_link(user_id: int) -> tuple[str, str]:
+async def create_payment_link(user_id: int) -> tuple[str, str | None]:
     """
     Создаёт платёж в ЮKassa.
-    Возвращает (payment_id, confirmation_url).
+
+    Если у пользователя уже сохранён платёжный метод СБП — делает прямое
+    списание через payment_method_id (без редиректа). Confirmation URL в
+    этом случае равен None.
+
+    Если сохранённого метода нет — создаёт платёж с редиректом и
+    save_payment_method=True, возвращая URL для перехода в банк.
+
+    Возвращает (payment_id, confirmation_url | None).
     """
+    from bot.database.subscriptions import get_active_subscription  # local import to avoid circular
+
+    existing_sub = await get_active_subscription(user_id)
+    saved_method_id = existing_sub.get("yukassa_payment_method_id") if existing_sub else None
+
     idempotency_key = str(uuid.uuid4())
-    payment = YkPayment.create(
-        {
-            "amount": {"value": f"{PLAN_PRICE}.00", "currency": "RUB"},
-            "payment_method_data": {"type": "sbp"},
-            "confirmation": {
-                "type": "redirect",
-                "return_url": RETURN_URL,
+
+    if saved_method_id:
+        # ── Прямое списание через сохранённый СБП-метод ──────────────────────
+        # Не передаём payment_method_data и save_payment_method, иначе ЮКасса
+        # возвращает ошибку «счёт уже привязан к магазину».
+        payment = YkPayment.create(
+            {
+                "amount": {"value": f"{PLAN_PRICE}.00", "currency": "RUB"},
+                "capture": True,
+                "payment_method_id": saved_method_id,
+                "description": f"{PLAN_NAME} (продление) — {user_id}",
+                "metadata": {"user_id": str(user_id)},
             },
-            "capture": True,
-            "save_payment_method": True,
-            "description": f"{PLAN_NAME} — {user_id}",
-            "metadata": {"user_id": str(user_id)},
-        },
-        idempotency_key,
-    )
-    await create_payment(user_id, payment.id)
-    return payment.id, payment.confirmation.confirmation_url
+            idempotency_key,
+        )
+        await create_payment(user_id, payment.id)
+        return payment.id, None
+    else:
+        # ── Первая оплата: редирект + сохраняем метод ─────────────────────────
+        payment = YkPayment.create(
+            {
+                "amount": {"value": f"{PLAN_PRICE}.00", "currency": "RUB"},
+                "payment_method_data": {"type": "sbp"},
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": RETURN_URL,
+                },
+                "capture": True,
+                "save_payment_method": True,
+                "description": f"{PLAN_NAME} — {user_id}",
+                "metadata": {"user_id": str(user_id)},
+            },
+            idempotency_key,
+        )
+        await create_payment(user_id, payment.id)
+        return payment.id, payment.confirmation.confirmation_url
 
 
 async def charge_auto_renew(sub: dict[str, Any], bot: Any) -> bool:
