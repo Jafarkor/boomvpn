@@ -12,6 +12,7 @@ PasarGuard и БД всегда обновляются вместе в одно�
 import logging
 
 from bot.config import PLAN_DAYS, GIFT_DAYS
+from bot.database.manager import get_pool
 from bot.database.subscriptions import (
     create_subscription,
     extend_subscription,
@@ -31,14 +32,20 @@ async def _ensure_panel_user(username: str, days: int) -> None:
     """
     Создаёт пользователя в PasarGuard или продлевает срок если уже существует.
 
-    ValueError (409 — пользователь уже есть) перехватываем и продлеваем.
-    Все остальные ошибки пробрасываем наверх.
+    Стратегия: сначала проверяем через GET существует ли пользователь.
+    - Если нет → создаём.
+    - Если да → продлеваем.
+
+    Это надёжнее чем create→catch(409), потому что PasarGuard (форк Marzban)
+    может вернуть 400/422 вместо 409 при дубликате, что раньше приводило
+    к необработанному исключению и сообщению "ошибка при создании подписки".
     """
-    try:
-        await pasarguard.create_user(username, days=days)
-    except ValueError:
-        logger.info("PasarGuard user '%s' exists, extending instead", username)
+    user_exists = await pasarguard.get_user(username) is not None
+    if user_exists:
+        logger.info("PasarGuard user '%s' already exists, extending", username)
         await pasarguard.extend_user(username, days)
+    else:
+        await pasarguard.create_user(username, days=days)
 
 
 async def create_gift_subscription(user_id: int) -> str:
@@ -80,8 +87,16 @@ async def create_paid_subscription(
         await extend_subscription(existing["id"], days=PLAN_DAYS)
         await pasarguard.extend_user(username, PLAN_DAYS)
         # При продлении возвращаем сохранённый URL — не перезапрашиваем из панели,
-        # т.к. PUT может изменить токен в subscription_url
+        # т.к. PUT может изменить токен в subscription_url.
+        # Но если URL не был сохранён (старые записи или миграция) — берём из панели.
         url = existing.get("subscription_url") or await pasarguard.get_subscription_url(username)
+        # Если URL в БД отсутствовал — сохраняем его сейчас (миграция со старой панели)
+        if not existing.get("subscription_url") and url:
+            async with get_pool().acquire() as conn:
+                await conn.execute(
+                    "UPDATE subscriptions SET subscription_url = $1 WHERE id = $2",
+                    url, existing["id"],
+                )
     else:
         await _ensure_panel_user(username, days=PLAN_DAYS)
         # Запрашиваем URL один раз и сохраняем в БД
