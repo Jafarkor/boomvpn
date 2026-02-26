@@ -67,20 +67,35 @@ class PasarGuardClient:
 
     # ── Пользователи ──────────────────────────────────────────────────────────
 
+    async def get_user(self, username: str) -> dict[str, Any] | None:
+        """
+        Возвращает данные пользователя по username или None если не найден (404).
+        Используется для проверки существования перед созданием/продлением.
+        """
+        session = self._get_session()
+        async with session.get(
+            f"/api/user/{username}", headers=await self._headers()
+        ) as resp:
+            if resp.status == 404:
+                return None
+            if not resp.ok:
+                body = await resp.text()
+                logger.error(
+                    "PasarGuard: GET /api/user/%s returned %d: %s",
+                    username, resp.status, body,
+                )
+                resp.raise_for_status()
+            return await resp.json()
+
     async def create_user(self, username: str, days: int) -> dict[str, Any]:
         """
         Создаёт пользователя в PasarGuard и возвращает данные.
-
-        PasarGuard генерирует UUID автоматически — не передаём id в proxies.
+        Если пользователь уже существует (409) — бросает ValueError.
         """
         expire_ts = int((datetime.utcnow() + timedelta(days=days)).timestamp())
         payload = {
             "username": username,
-            "proxies": {
-                "vless": {
-                    "flow": PASARGUARD_FLOW,
-                }
-            },
+            "proxies": {"vless": {"flow": PASARGUARD_FLOW}},
             "inbounds": {"vless": [PASARGUARD_INBOUND_TAG]},
             "expire": expire_ts,
             "data_limit": 0,
@@ -94,39 +109,40 @@ class PasarGuardClient:
         ) as resp:
             if resp.status == 409:
                 raise ValueError(f"User '{username}' already exists in PasarGuard")
-            resp.raise_for_status()
+            if not resp.ok:
+                body = await resp.text()
+                logger.error(
+                    "PasarGuard: POST /api/user returned %d for '%s': %s",
+                    resp.status, username, body,
+                )
+                resp.raise_for_status()
             data = await resp.json()
             logger.info("PasarGuard: created user '%s' for %d days", username, days)
             return data
 
-    async def get_user(self, username: str) -> dict[str, Any] | None:
+    async def ensure_user(self, username: str, days: int) -> None:
         """
-        Возвращает данные пользователя по username или None если не найден.
-        Используется для проверки существования перед создания/продлением.
+        Создаёт пользователя если не существует, продлевает если уже есть.
+        Стратегия GET-first: проверяем наличие через GET перед созданием,
+        чтобы не зависеть от конкретного HTTP-кода ошибки дубликата
+        (PasarGuard может вернуть 400/409/422).
         """
-        session = self._get_session()
-        async with session.get(
-            f"/api/user/{username}", headers=await self._headers()
-        ) as resp:
-            if resp.status == 404:
-                return None
-            resp.raise_for_status()
-            return await resp.json()
+        data = await self.get_user(username)
+        if data is not None:
+            logger.info("PasarGuard: user '%s' exists, extending by %d days", username, days)
+            await self.extend_user(username, days)
+        else:
+            await self.create_user(username, days=days)
 
     async def extend_user(self, username: str, additional_days: int) -> None:
         """
         Продлевает подписку пользователя на additional_days дней.
 
-        ИСПРАВЛЕНО: явно проверяем наличие vless-ключа в proxies/inbounds,
-        т.к. пустой dict является truthy и fallback через `or` не срабатывал.
-        Это приводило к тому, что PUT отправлял пустые proxies/inbounds,
-        и PasarGuard сохранял подписку без конфигурации.
+        Если пользователь не найден — создаёт его (fallback при рассинхроне DB/панели).
 
-        ИСПРАВЛЕНО 2: если пользователь не найден в панели (404) — создаём его.
-        Это может случиться при миграции на PasarGuard, когда в БД запись есть,
-        а в новой панели пользователя нет.
+        Если пользователь не найден — создаёт его (fallback при рассинхроне DB/панели).
+        
         """
-        # Получаем данные через get_user (уже обрабатывает 404)
         data = await self.get_user(username)
         if data is None:
             logger.warning(
@@ -139,8 +155,8 @@ class PasarGuardClient:
         new_expire = max(current_expire, int(datetime.utcnow().timestamp()))
         new_expire += additional_days * 86400
 
-        # ИСПРАВЛЕНИЕ: пустой dict ({}) — truthy, поэтому `data.get(...) or fallback`
-        # не работает. Явно проверяем наличие ключа "vless" внутри словаря.
+        # Явно проверяем наличие ключа "vless" — пустой dict ({}) truthy,
+        # поэтому `data.get(...) or fallback` не работает.
         existing_proxies = data.get("proxies") or {}
         existing_inbounds = data.get("inbounds") or {}
 
@@ -155,10 +171,6 @@ class PasarGuardClient:
             else {"vless": [PASARGUARD_INBOUND_TAG]}
         )
 
-        # group_ids из существующих данных — важно передавать обратно,
-        # иначе PasarGuard удалит пользователя из всех групп при PUT.
-        existing_group_ids = data.get("group_ids") or [1]
-
         payload = {
             "proxies": proxies,
             "inbounds": inbounds,
@@ -166,33 +178,40 @@ class PasarGuardClient:
             "data_limit": data.get("data_limit", 0),
             "data_limit_reset_strategy": data.get("data_limit_reset_strategy", "no_reset"),
             "status": "active",
-            "group_ids": existing_group_ids,
+            "group_ids": [1],
         }
 
         session = self._get_session()
-        headers = await self._headers()
         async with session.put(
             f"/api/user/{username}",
             json=payload,
-            headers=headers,
+            headers=await self._headers(),
         ) as resp:
-            resp.raise_for_status()
+            if not resp.ok:
+                body = await resp.text()
+                logger.error(
+                    "PasarGuard: PUT /api/user/%s returned %d: %s",
+                    username, resp.status, body,
+                )
+                resp.raise_for_status()
             logger.info(
-                "PasarGuard: extended user '%s' by %d days", username, additional_days
+                "PasarGuard: extended user '%s' by %d days (new expire ts: %d)",
+                username, additional_days, new_expire,
             )
 
     async def get_subscription_url(self, username: str) -> str:
         """
         Возвращает полную ссылку подписки из PasarGuard API.
         Если панель вернула относительный путь — добавляем базовый URL.
+        Если пользователь не найден или url пустой — бросает ValueError.
         """
         data = await self.get_user(username)
         if data is None:
             raise ValueError(f"User '{username}' not found in PasarGuard")
 
-        path = data.get("subscription_url", "")
+        path = data.get("subscription_url") or ""
         if not path:
-            raise ValueError(f"PasarGuard returned no subscription_url for '{username}'")
+            raise ValueError(f"PasarGuard returned empty subscription_url for '{username}'")
         if path.startswith("/"):
             return f"{PASARGUARD_URL.rstrip('/')}{path}"
         return path

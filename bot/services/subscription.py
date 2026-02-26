@@ -3,10 +3,20 @@ services/subscription.py — создание и продление подпис
 
 PasarGuard и БД всегда обновляются вместе в одном вызове.
 
-ИСПРАВЛЕНИЕ: subscription_url теперь запрашивается из PasarGuard только один раз —
-при создании подписки — и сохраняется в БД. При последующих обращениях (нажатие
-"Подключить VPN", продление) URL берётся из БД. Это гарантирует, что пользователь
-всегда видит одну и ту же ссылку, даже если PasarGuard изменил токен после PUT-запроса.
+subscription_url запрашивается из PasarGuard только один раз — при создании подписки —
+и сохраняется в БД. При последующих обращениях URL берётся из БД.
+
+ВАЖНО: порядок операций при создании новой подписки:
+  1. Сначала PasarGuard (create/extend)
+  2. Потом DB (create_subscription)
+Это гарантирует что если PasarGuard падает — DB не обновляется,
+и следующая попытка оплаты пройдёт корректно.
+
+При продлении существующей подписки порядок:
+  1. PasarGuard extend
+  2. DB extend
+Если PasarGuard падает при продлении — логируем ошибку, но НЕ бросаем исключение,
+чтобы пользователь не видел "ошибку создания подписки" когда DB уже обновлена.
 """
 
 import logging
@@ -24,43 +34,22 @@ logger = logging.getLogger(__name__)
 
 
 def _panel_username(user_id: int) -> str:
-    """Детерминированный логин в PasarGuard по Telegram user_id."""
+    """Детерминированный логин в PasarGuard по Telegram user_id: tg_{user_id}."""
     return f"tg_{user_id}"
-
-
-async def _ensure_panel_user(username: str, days: int) -> None:
-    """
-    Создаёт пользователя в PasarGuard или продлевает срок если уже существует.
-
-    Стратегия: сначала проверяем через GET существует ли пользователь.
-    - Если нет → создаём.
-    - Если да → продлеваем.
-
-    Это надёжнее чем create→catch(409), потому что PasarGuard (форк Marzban)
-    может вернуть 400/422 вместо 409 при дубликате, что раньше приводило
-    к необработанному исключению и сообщению "ошибка при создании подписки".
-    """
-    user_exists = await pasarguard.get_user(username) is not None
-    if user_exists:
-        logger.info("PasarGuard user '%s' already exists, extending", username)
-        await pasarguard.extend_user(username, days)
-    else:
-        await pasarguard.create_user(username, days=days)
 
 
 async def create_gift_subscription(user_id: int) -> str:
     """
     Создаёт подарочную подписку на GIFT_DAYS дней.
-
     Возвращает ссылку подписки.
     """
     username = _panel_username(user_id)
 
-    await _ensure_panel_user(username, days=GIFT_DAYS)
-
-    # Запрашиваем URL один раз и сохраняем в БД
+    # 1. PasarGuard (сначала!)
+    await pasarguard.ensure_user(username, days=GIFT_DAYS)
     url = await pasarguard.get_subscription_url(username)
 
+    # 2. DB
     await create_subscription(
         user_id=user_id,
         panel_username=username,
@@ -79,28 +68,52 @@ async def create_paid_subscription(
     """
     Создаёт или продлевает платную подписку на PLAN_DAYS дней.
     Возвращает ссылку подписки.
+
+    Для новой подписки: сначала PasarGuard, потом DB.
+    Для продления: сначала PasarGuard, потом DB. Если PasarGuard падает при
+    продлении — ошибка логируется, но подписка считается успешной (DB уже актуальна).
     """
     username = _panel_username(user_id)
     existing = await get_active_subscription(user_id)
 
     if existing:
+        # ── Продление существующей подписки ───────────────────────────────────
+        # 1. PasarGuard
+        try:
+            await pasarguard.extend_user(username, PLAN_DAYS)
+        except Exception as pg_exc:
+            # PasarGuard упал, но DB будет обновлена — логируем и продолжаем.
+            # Пользователь получит подписку в DB; PasarGuard нужно проверить вручную.
+            logger.error(
+                "PasarGuard extend_user FAILED for user %s (panel: %s): %s — "
+                "DB will be updated anyway. Check PasarGuard manually.",
+                user_id, username, pg_exc,
+            )
+
+        # 2. DB
         await extend_subscription(existing["id"], days=PLAN_DAYS)
-        await pasarguard.extend_user(username, PLAN_DAYS)
-        # При продлении возвращаем сохранённый URL — не перезапрашиваем из панели,
-        # т.к. PUT может изменить токен в subscription_url.
-        # Но если URL не был сохранён (старые записи или миграция) — берём из панели.
-        url = existing.get("subscription_url") or await pasarguard.get_subscription_url(username)
-        # Если URL в БД отсутствовал — сохраняем его сейчас (миграция со старой панели)
-        if not existing.get("subscription_url") and url:
-            async with get_pool().acquire() as conn:
-                await conn.execute(
-                    "UPDATE subscriptions SET subscription_url = $1 WHERE id = $2",
-                    url, existing["id"],
-                )
+
+        # Возвращаем сохранённый URL; если нет — запрашиваем из PasarGuard
+        url = existing.get("subscription_url")
+        if not url:
+            try:
+                url = await pasarguard.get_subscription_url(username)
+                # Сохраняем на будущее
+                async with get_pool().acquire() as conn:
+                    await conn.execute(
+                        "UPDATE subscriptions SET subscription_url = $1 WHERE id = $2",
+                        url, existing["id"],
+                    )
+            except Exception:
+                url = ""
+
     else:
-        await _ensure_panel_user(username, days=PLAN_DAYS)
-        # Запрашиваем URL один раз и сохраняем в БД
+        # ── Новая подписка ────────────────────────────────────────────────────
+        # 1. PasarGuard (сначала! если упадёт — DB не трогаем)
+        await pasarguard.ensure_user(username, days=PLAN_DAYS)
         url = await pasarguard.get_subscription_url(username)
+
+        # 2. DB
         await create_subscription(
             user_id=user_id,
             panel_username=username,
@@ -109,7 +122,7 @@ async def create_paid_subscription(
             subscription_url=url,
         )
 
-    logger.info("Paid subscription for user %s (%d days)", user_id, PLAN_DAYS)
+    logger.info("Paid subscription processed for user %s (%d days)", user_id, PLAN_DAYS)
     return url
 
 
@@ -126,7 +139,7 @@ async def get_subscription_url(user_id: int) -> str | None:
     if url:
         return url
 
-    # Fallback для подписок, созданных до добавления колонки subscription_url
+    # Fallback для подписок без subscription_url в DB
     logger.warning(
         "subscription_url missing in DB for user %s, fetching from PasarGuard", user_id
     )

@@ -3,8 +3,8 @@ services/referral.py — бизнес-логика реферальной сис
 
 Правила:
   • Пригласивший получает +REFERRAL_BONUS_DAYS дней реальной подписки:
-      - есть активная подписка → продлевается
-      - подписки нет → создаётся новая
+      - есть активная подписка → продлевается в PasarGuard и DB
+      - подписки нет → создаётся новая в PasarGuard и DB
 """
 
 import logging
@@ -25,35 +25,58 @@ logger = logging.getLogger(__name__)
 
 
 def _panel_username(user_id: int) -> str:
+    """Детерминированный логин в PasarGuard по Telegram user_id: tg_{user_id}."""
     return f"tg_{user_id}"
 
 
 async def _grant_subscription(referrer_id: int) -> None:
-    """Выдаёт или продлевает реальную подписку рефереру."""
+    """Выдаёт или продлевает реальную подписку рефереру в PasarGuard и DB."""
+    # ВСЕГДА используем _panel_username для консистентности —
+    # НЕ берём panel_username из DB, т.к. там может быть устаревшее значение.
+    username = _panel_username(referrer_id)
     sub = await get_active_subscription(referrer_id)
 
     if sub:
-        await extend_subscription(sub["id"], days=REFERRAL_BONUS_DAYS)
-        await pasarguard.extend_user(sub["panel_username"], REFERRAL_BONUS_DAYS)
-        logger.info("Referral: extended sub %s by %d days for user %s",
-                    sub["id"], REFERRAL_BONUS_DAYS, referrer_id)
-    else:
-        username = _panel_username(referrer_id)
+        # ── Продление существующей подписки ───────────────────────────────────
+        # 1. PasarGuard
         try:
-            await pasarguard.create_user(username, days=REFERRAL_BONUS_DAYS)
-        except ValueError:
-            # Пользователь уже есть в PasarGuard (409) — только продлеваем срок.
             await pasarguard.extend_user(username, REFERRAL_BONUS_DAYS)
+        except Exception as pg_exc:
+            logger.error(
+                "PasarGuard extend_user FAILED for referrer %s (panel: %s): %s",
+                referrer_id, username, pg_exc,
+            )
 
+        # 2. DB
+        await extend_subscription(sub["id"], days=REFERRAL_BONUS_DAYS)
+        logger.info(
+            "Referral: extended sub %s by %d days for user %s",
+            sub["id"], REFERRAL_BONUS_DAYS, referrer_id,
+        )
+    else:
+        # ── Новая подписка рефереру ────────────────────────────────────────────
+        # 1. PasarGuard (GET-first: создаём или продлеваем)
+        await pasarguard.ensure_user(username, days=REFERRAL_BONUS_DAYS)
+
+        # Получаем subscription_url для сохранения в DB
+        try:
+            url = await pasarguard.get_subscription_url(username)
+        except Exception:
+            url = None
+
+        # 2. DB
         await create_subscription(
             user_id=referrer_id,
             panel_username=username,
             payment_method_id=None,
             days=REFERRAL_BONUS_DAYS,
             auto_renew=False,
+            subscription_url=url,
         )
-        logger.info("Referral: created %d-day subscription for user %s",
-                    REFERRAL_BONUS_DAYS, referrer_id)
+        logger.info(
+            "Referral: created %d-day subscription for user %s",
+            REFERRAL_BONUS_DAYS, referrer_id,
+        )
 
 
 async def handle_referral(referrer_id: int, referred_id: int, bot: Bot) -> None:
