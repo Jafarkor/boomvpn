@@ -139,8 +139,6 @@ class PasarGuardClient:
         Продлевает подписку пользователя на additional_days дней.
 
         Если пользователь не найден — создаёт его (fallback при рассинхроне DB/панели).
-
-        Если пользователь не найден — создаёт его (fallback при рассинхроне DB/панели).
         
         """
         data = await self.get_user(username)
@@ -151,7 +149,8 @@ class PasarGuardClient:
             await self.create_user(username, days=additional_days)
             return
 
-        current_expire = data.get("expire") or int(datetime.utcnow().timestamp())
+        raw_expire = data.get("expire")
+        current_expire = int(raw_expire) if raw_expire else int(datetime.utcnow().timestamp())
         new_expire = max(current_expire, int(datetime.utcnow().timestamp()))
         new_expire += additional_days * 86400
 

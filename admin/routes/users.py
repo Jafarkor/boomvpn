@@ -183,20 +183,22 @@ def grant_sub(uid):
     async def _():
         pg_user      = await pg.create_user(uid)
         panel_uname  = pg_user["username"]
-        link         = next((l for l in pg_user.get("links", []) if l.startswith("vless://")), None)
+        sub_url = pg_user.get("subscription_url") or ""
+        if sub_url.startswith("/"):
+            sub_url = f"{pg.PASARGUARD_URL.rstrip('/')}{sub_url}"
         expires_at   = datetime.utcnow() + timedelta(days=PLAN_DAYS)
 
         c = await conn()
         try:
             sub_id = await c.fetchval("""
                 INSERT INTO subscriptions
-                    (user_id, panel_username, expires_at, is_active, auto_renew)
-                VALUES ($1, $2, $3, TRUE, TRUE) RETURNING id
-            """, uid, panel_uname, expires_at)
+                    (user_id, panel_username, expires_at, is_active, auto_renew, subscription_url)
+                VALUES ($1, $2, $3, TRUE, TRUE, $4) RETURNING id
+            """, uid, panel_uname, expires_at, sub_url or None)
         finally:
             await c.close()
 
-        return {"ok": True, "sub_id": sub_id, "panel_username": panel_uname, "link": link}
+        return {"ok": True, "sub_id": sub_id, "panel_username": panel_uname, "subscription_url": sub_url}
 
     try:
         return jsonify(run(_()))

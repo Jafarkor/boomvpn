@@ -65,7 +65,8 @@ async def extend_user(username: str, extra_days: int = PLAN_DAYS) -> None:
         async with s.get(f"{PASARGUARD_URL}/api/user/{username}", headers=h) as r:
             r.raise_for_status()
             user = await r.json()
-        current = user.get("expire") or int(datetime.utcnow().timestamp())
+        raw_expire = user.get("expire")
+        current = int(raw_expire) if raw_expire else int(datetime.utcnow().timestamp())
         new_exp = max(current, int(datetime.utcnow().timestamp())) + extra_days * 86400
         # Передаём все поля пользователя чтобы PasarGuard не сбросил proxies/inbounds
         payload = {
