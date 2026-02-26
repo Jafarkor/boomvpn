@@ -27,14 +27,15 @@ async def create_payment_link(user_id: int) -> tuple[str, str | None]:
     """
     Создаёт платёж в ЮKassa.
 
-    Если у пользователя уже сохранён платёжный метод СБП — делает прямое
-    списание через payment_method_id (без редиректа). Confirmation URL в
-    этом случае равен None.
-
-    Если сохранённого метода нет — создаёт платёж с редиректом и
-    save_payment_method=True, возвращая URL для перехода в банк.
-
-    Возвращает (payment_id, confirmation_url | None).
+    Логика выбора сценария:
+    1. Есть сохранённый payment_method_id → прямое списание (без редиректа).
+       Возвращает (payment_id, None).
+    2. Есть активная подписка, но нет payment_method_id (метод не был сохранён
+       при первой оплате) → новый СБП-платёж БЕЗ save_payment_method, чтобы
+       ЮKасса не выдавала ошибку "счёт уже привязан".
+       Возвращает (payment_id, confirmation_url).
+    3. Нет активной подписки (первая оплата) → СБП с save_payment_method=True.
+       Возвращает (payment_id, confirmation_url).
     """
     from bot.database.subscriptions import get_active_subscription  # local import to avoid circular
 
@@ -44,9 +45,7 @@ async def create_payment_link(user_id: int) -> tuple[str, str | None]:
     idempotency_key = str(uuid.uuid4())
 
     if saved_method_id:
-        # ── Прямое списание через сохранённый СБП-метод ──────────────────────
-        # Не передаём payment_method_data и save_payment_method, иначе ЮКасса
-        # возвращает ошибку «счёт уже привязан к магазину».
+        # ── Сценарий 1: прямое списание через сохранённый СБП-метод ──────────
         payment = YkPayment.create(
             {
                 "amount": {"value": f"{PLAN_PRICE}.00", "currency": "RUB"},
@@ -59,8 +58,33 @@ async def create_payment_link(user_id: int) -> tuple[str, str | None]:
         )
         await create_payment(user_id, payment.id)
         return payment.id, None
+
+    elif existing_sub:
+        # ── Сценарий 2: продление без привязки ───────────────────────────────
+        # У пользователя уже есть подписка, но payment_method_id не сохранился
+        # (вебхук не пришёл вовремя / банк не поддерживал автоплатёж).
+        # Делаем обычный СБП-платёж БЕЗ save_payment_method, чтобы ЮКасса
+        # не жаловалась на «счёт уже привязан».
+        payment = YkPayment.create(
+            {
+                "amount": {"value": f"{PLAN_PRICE}.00", "currency": "RUB"},
+                "payment_method_data": {"type": "sbp"},
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": RETURN_URL,
+                },
+                "capture": True,
+                "save_payment_method": False,
+                "description": f"{PLAN_NAME} (продление) — {user_id}",
+                "metadata": {"user_id": str(user_id)},
+            },
+            idempotency_key,
+        )
+        await create_payment(user_id, payment.id)
+        return payment.id, payment.confirmation.confirmation_url
+
     else:
-        # ── Первая оплата: редирект + сохраняем метод ─────────────────────────
+        # ── Сценарий 3: первая оплата — редирект + сохраняем метод ───────────
         payment = YkPayment.create(
             {
                 "amount": {"value": f"{PLAN_PRICE}.00", "currency": "RUB"},

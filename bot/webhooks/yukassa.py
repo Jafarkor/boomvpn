@@ -4,7 +4,6 @@ webhooks/yukassa.py — обработчик вебхуков ЮKassa.
 ЮKassa присылает уведомления о статусе платежей на этот эндпоинт.
 """
 
-import json
 import logging
 
 from aiohttp import web
@@ -12,6 +11,7 @@ from aiogram import Bot
 
 from bot.config import YUKASSA_WEBHOOK_PATH
 from bot.database.payments import get_payment_by_yukassa_id, update_payment_status, link_payment_to_subscription
+from bot.database.subscriptions import get_active_subscription, save_payment_method
 from bot.services.subscription import create_paid_subscription
 
 logger = logging.getLogger(__name__)
@@ -41,17 +41,37 @@ async def yukassa_webhook_handler(request: web.Request) -> web.Response:
         return web.Response(status=200)
 
     if payment.get("status") == "succeeded":
-        # Уже обработан
+        # Платёж уже обработан через cb_check_payment.
+        # Но вебхук может принести актуальный payment_method_id (saved=True),
+        # которого ещё не было при ручной проверке — обновляем его в БД.
+        pm = obj.get("payment_method", {})
+        if pm.get("saved") and pm.get("id"):
+            sub = await get_active_subscription(payment["user_id"])
+            if sub and not sub.get("yukassa_payment_method_id"):
+                await save_payment_method(sub["id"], pm["id"])
+                logger.info(
+                    "Webhook: saved payment_method_id %s for user %s (late save)",
+                    pm["id"], payment["user_id"],
+                )
         return web.Response(status=200)
 
     user_id = payment["user_id"]
-    method_id = obj.get("payment_method", {}).get("id") if obj.get("payment_method", {}).get("saved") else None
+
+    # Извлекаем id способа оплаты. ЮКасса для СБП может прислать saved=True
+    # только в вебхуке, даже если при ручном find_one было saved=False.
+    pm = obj.get("payment_method", {})
+    method_id = pm.get("id") if pm.get("saved") else None
 
     await update_payment_status(payment_id, "succeeded")
 
     try:
-        sub_id, _ = await create_paid_subscription(user_id, payment_method_id=method_id)
-        await link_payment_to_subscription(payment_id, sub_id)
+        # create_paid_subscription возвращает str (url), не кортеж
+        url = await create_paid_subscription(user_id, payment_method_id=method_id)
+
+        # Получаем только что созданную/продлённую подписку чтобы привязать платёж
+        sub = await get_active_subscription(user_id)
+        if sub:
+            await link_payment_to_subscription(payment_id, sub["id"])
 
         bot: Bot = request.app["bot"]
         await bot.send_message(

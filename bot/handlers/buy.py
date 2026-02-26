@@ -9,6 +9,7 @@ from aiogram.types import CallbackQuery
 from yookassa import Payment as YkPayment
 
 from bot.database.payments import update_payment_status
+from bot.database.subscriptions import get_active_subscription, save_payment_method
 from bot.keyboards.user import pay_kb, back_to_menu_kb
 from bot.messages import buy_text, payment_success_text, payment_fail_text
 from bot.services.payment import create_payment_link
@@ -19,16 +20,12 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 # user_id → yukassa_payment_id
-# Живёт в памяти процесса — достаточно для большинства случаев.
-# При перезапуске пользователь просто нажмёт «Купить» ещё раз.
 _pending: dict[int, str] = {}
 
 
 async def _process_check_payment(callback: CallbackQuery, user_id: int, payment_id: str) -> None:
     """
     Общая логика проверки статуса платежа ЮКассы.
-    Используется как для ручной проверки (кнопка «Проверить»),
-    так и для прямого списания через сохранённый СБП-метод.
     """
     try:
         yk_payment = YkPayment.find_one(payment_id)
@@ -44,15 +41,36 @@ async def _process_check_payment(callback: CallbackQuery, user_id: int, payment_
 
     if yk_payment.status == "succeeded":
         _pending.pop(user_id, None)
-        method_id = (
-            yk_payment.payment_method.id
-            if yk_payment.payment_method and yk_payment.payment_method.saved
-            else None
-        )
+
+        # Берём id метода оплаты.
+        # ВАЖНО: для СБП ЮКасса может вернуть saved=False при первом find_one
+        # (метод сохраняется асинхронно), но id уже есть.
+        # Сохраняем id сейчас; вебхук обновит флаг saved=True и подтвердит.
+        pm = yk_payment.payment_method
+        method_id = pm.id if (pm and pm.id) else None
+
         await update_payment_status(payment_id, "succeeded")
 
         try:
-            await create_paid_subscription(user_id, payment_method_id=method_id)
+            # method_id передаём только если метод реально сохранён (saved=True).
+            # Если saved=False — передаём None; вебхук позже запишет id в БД.
+            saved_method_id = method_id if (pm and getattr(pm, "saved", False)) else None
+            await create_paid_subscription(user_id, payment_method_id=saved_method_id)
+
+            # Если метод есть, но saved=False — пытаемся сохранить id в БД
+            # сразу, не дожидаясь вебхука (best-effort).
+            if method_id and not saved_method_id:
+                sub = await get_active_subscription(user_id)
+                if sub and not sub.get("yukassa_payment_method_id"):
+                    try:
+                        await save_payment_method(sub["id"], method_id)
+                        logger.info(
+                            "Saved payment_method_id %s for user %s (pre-webhook)",
+                            method_id, user_id,
+                        )
+                    except Exception as e:
+                        logger.warning("Could not pre-save payment method: %s", e)
+
             await edit_photo_page(
                 callback,
                 page="menu",
@@ -77,7 +95,6 @@ async def _process_check_payment(callback: CallbackQuery, user_id: int, payment_
         )
 
     else:
-        # Платёж ещё в обработке (pending) — просим подождать
         await callback.answer("Оплата ещё не подтверждена. Подождите немного.", show_alert=True)
 
 
@@ -95,12 +112,10 @@ async def cb_buy(callback: CallbackQuery) -> None:
     _pending[user_id] = payment_id
 
     if url is None:
-        # Сохранённый СБП-метод — прямое списание без редиректа.
-        # Сразу проверяем статус: платёж либо уже succeeded, либо pending.
+        # Прямое списание через сохранённый метод — сразу проверяем статус.
         await callback.answer()
         await _process_check_payment(callback, user_id, payment_id)
     else:
-        # Первая оплата — редирект в банк-приложение пользователя.
         await edit_photo_page(
             callback,
             page="buy",
