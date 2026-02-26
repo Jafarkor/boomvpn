@@ -237,6 +237,66 @@ def extend_sub(uid):
         return jsonify({"error": str(e)}), 500
 
 
+# ── Adjust subscription (reduce/extend/set exact date) ────────────
+
+@bp.post("/users/<int:uid>/sub/adjust")
+def adjust_sub(uid):
+    """
+    Устанавливает новую дату истечения подписки.
+    Принимает одно из двух:
+      { "days": <int>  }          — смещение относительно текущей даты (может быть <0)
+      { "exact_ts": <unix int> }  — точный Unix timestamp новой даты
+    """
+    body = request.json or {}
+
+    if "exact_ts" in body:
+        new_ts = int(body["exact_ts"])
+    elif "days" in body:
+        days   = int(body["days"])
+        # Считаем от текущей expires_at, чтобы точно учесть текущий остаток
+        new_ts = None  # вычислим в БД
+        delta_days = days
+    else:
+        return jsonify({"error": "Укажите 'exact_ts' или 'days'"}), 400
+
+    async def _():
+        c = await conn()
+        try:
+            sub = await c.fetchrow(
+                "SELECT id, panel_username, expires_at FROM subscriptions "
+                "WHERE user_id=$1 ORDER BY id DESC LIMIT 1",
+                uid,
+            )
+            if not sub:
+                return {"error": "Подписка не найдена"}
+
+            # Вычисляем итоговый timestamp
+            if "exact_ts" in body:
+                ts = new_ts
+            else:
+                from_dt = sub["expires_at"] if sub["expires_at"] else __import__('datetime').datetime.utcnow()
+                ts = int(from_dt.timestamp()) + delta_days * 86400
+
+            # Обновляем PasarGuard
+            await pg.set_expire_user(sub["panel_username"], ts)
+
+            # Обновляем БД
+            from datetime import datetime as _dt
+            new_expires = _dt.utcfromtimestamp(ts)
+            await c.execute(
+                "UPDATE subscriptions SET expires_at=$1, is_active=TRUE WHERE id=$2",
+                new_expires, sub["id"],
+            )
+        finally:
+            await c.close()
+        return {"ok": True, "new_expires_ts": ts}
+
+    try:
+        return jsonify(run(_()))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Delete user ────────────────────────────────────────────────────
 
 @bp.delete("/users/<int:uid>")

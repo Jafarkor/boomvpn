@@ -104,6 +104,28 @@ async def extend_user(username: str, extra_days: int = PLAN_DAYS) -> None:
             r.raise_for_status()
 
 
+async def set_expire_user(username: str, new_expire_ts: int) -> None:
+    """Устанавливает точную дату истечения подписки в PasarGuard."""
+    async with aiohttp.ClientSession() as s:
+        token = await _token(s)
+        h = _headers(token)
+        async with s.get(f"{PASARGUARD_URL}/api/user/{username}", headers=h) as r:
+            r.raise_for_status()
+            user = await r.json()
+        payload = {
+            "proxies": user.get("proxies") or {"vless": {"flow": FLOW}},
+            "inbounds": user.get("inbounds") or {"vless": [INBOUND_TAG]},
+            "expire": new_expire_ts,
+            "data_limit": user.get("data_limit", 0),
+            "data_limit_reset_strategy": user.get("data_limit_reset_strategy", "no_reset"),
+            "status": "active",
+        }
+        async with s.put(
+            f"{PASARGUARD_URL}/api/user/{username}", json=payload, headers=h
+        ) as r:
+            r.raise_for_status()
+
+
 async def delete_user(username: str) -> None:
     """Удаляет пользователя из PasarGuard."""
     async with aiohttp.ClientSession() as s:

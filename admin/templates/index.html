@@ -111,7 +111,7 @@ nav { flex: 1; padding: 10px 8px; overflow-y: auto; }
 }
 .ni:hover { background: var(--s2); color: var(--txt); }
 .ni.on    { background: var(--acc2); color: var(--acc); }
-.ni .ic   { width: 18px; text-align: center; font-size: 14px; flex-shrink: 0; }
+.ni .ic   { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .side-foot { padding: 12px 10px; border-top: 1px solid var(--b); }
 .out-btn {
   width: 100%; padding: 9px 12px; border-radius: 8px;
@@ -165,7 +165,7 @@ nav { flex: 1; padding: 10px 8px; overflow-y: auto; }
 .sc.g::before { background: var(--grn); }
 .sc.y::before { background: var(--ylw); }
 .sc.r::before { background: var(--red); }
-.sc-emoji { font-size: 22px; margin-bottom: 10px; line-height: 1; }
+.sc-emoji { width: 36px; height: 36px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; border-radius: 9px; background: var(--s2); }
 .sl { font-size: 10px; color: var(--txt3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
 .sv { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 3px; }
 .ss { font-size: 11px; color: var(--txt2); }
@@ -359,7 +359,12 @@ tbody tr:hover td { background: rgba(255,255,255,.017); }
 .mini-t td { padding: 8px 10px; border-top: 1px solid var(--b); }
 
 /* ── Confirm modal ── */
-.confirm-ico { font-size: 38px; text-align: center; margin-bottom: 14px; }
+.confirm-ico { display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+.confirm-ico svg { width: 48px; height: 48px; }
+.confirm-ico.ico-grn svg { color: var(--grn); }
+.confirm-ico.ico-acc svg { color: var(--acc); }
+.confirm-ico.ico-red svg { color: var(--red); }
+.confirm-ico.ico-txt svg { color: var(--txt2); }
 .confirm-msg { text-align: center; color: var(--txt2); font-size: 13px; margin-bottom: 22px; line-height: 1.7; }
 .mo-btns { display: flex; gap: 10px; justify-content: center; }
 .chk-row {
@@ -368,6 +373,68 @@ tbody tr:hover td { background: rgba(255,255,255,.017); }
   margin-bottom: 20px; cursor: pointer;
 }
 .chk-row input { accent-color: var(--acc); width: 14px; height: 14px; cursor: pointer; }
+
+/* ── Adjust subscription modal ── */
+.adj-tabs { display: flex; gap: 2px; background: var(--s2); border-radius: 10px; padding: 3px; margin-bottom: 20px; }
+.adj-tab {
+  flex: 1; padding: 8px; text-align: center; border-radius: 8px;
+  font: 600 12.5px 'Inter', system-ui; cursor: pointer;
+  color: var(--txt2); border: none; background: transparent;
+  transition: all var(--trans);
+}
+.adj-tab.on { background: var(--s1); color: var(--txt); box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.adj-pane { display: none; }
+.adj-pane.on { display: block; }
+
+.adj-slider-wrap { padding: 8px 0 4px; }
+.adj-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 5px; border-radius: 5px;
+  outline: none; cursor: pointer;
+  background: linear-gradient(to right, var(--acc) var(--pct, 50%), var(--b2) var(--pct, 50%));
+}
+.adj-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--acc); cursor: pointer;
+  box-shadow: 0 0 0 3px var(--acc2), 0 2px 6px rgba(0,0,0,.4);
+  transition: box-shadow .15s;
+}
+.adj-slider::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px var(--acc2), 0 2px 8px rgba(0,0,0,.5); }
+.adj-slider-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--txt3); margin-top: 6px; }
+.adj-days-display {
+  text-align: center; margin: 14px 0 6px;
+  font-size: 28px; font-weight: 700; line-height: 1;
+  transition: color .15s;
+}
+.adj-days-display.neg { color: var(--red); }
+.adj-days-display.pos { color: var(--grn); }
+.adj-days-display.zer { color: var(--txt2); }
+.adj-days-suffix { text-align: center; font-size: 11px; color: var(--txt3); margin-bottom: 4px; }
+
+.adj-preview {
+  background: var(--s2); border: 1px solid var(--b); border-radius: 10px;
+  padding: 13px 16px; margin: 14px 0;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.adj-preview-label { font-size: 11px; color: var(--txt3); margin-bottom: 3px; }
+.adj-preview-val { font-size: 13px; font-weight: 600; }
+.adj-preview-arrow { color: var(--txt3); padding: 0 8px; }
+.adj-preview-arrow svg { width: 16px; height: 16px; vertical-align: middle; }
+.adj-new { color: var(--acc); }
+
+.adj-date-field {
+  width: 100%; padding: 11px 14px;
+  background: var(--s2); border: 1px solid var(--b);
+  border-radius: 9px; color: var(--txt);
+  font: 14px 'Inter', system-ui;
+  outline: none; transition: border-color var(--trans);
+}
+.adj-date-field:focus { border-color: var(--acc); }
+.adj-date-field::-webkit-calendar-picker-indicator { filter: invert(.4); cursor: pointer; }
+.adj-date-note { font-size: 11px; color: var(--txt3); margin-top: 8px; }
+.adj-warn { color: var(--ylw); font-size: 11.5px; margin-top: 8px; display: flex; align-items: center; gap: 5px; }
+.adj-warn svg { width: 14px; height: 14px; flex-shrink: 0; }
 
 /* ── Broadcast ── */
 .bpage { max-width: 660px; }
@@ -448,7 +515,7 @@ tbody tr:hover td { background: rgba(255,255,255,.017); }
 <!-- Login -->
 <div id="login">
   <div class="lcard">
-    <div class="lcard-ico">🛡️</div>
+    <div class="lcard-ico"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--acc)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
     <h1>VPN Admin</h1>
     <p>Введите пароль для входа в панель</p>
     <input class="linput" type="password" id="pw" placeholder="Пароль"
@@ -464,7 +531,9 @@ tbody tr:hover td { background: rgba(255,255,255,.017); }
   <div class="side-overlay" id="sov" onclick="closeSidebar()" style="display:none"></div>
   <aside class="side" id="sidebar">
     <div class="brand">
-      <div class="brand-ico">🛡️</div>
+      <div class="brand-ico">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="color:var(--acc)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
       <div>
         <div class="brand-name">VPN Admin</div>
         <div class="brand-sub">Panel</div>
@@ -472,21 +541,36 @@ tbody tr:hover td { background: rgba(255,255,255,.017); }
     </div>
     <nav>
       <div class="nav-sec">Обзор</div>
-      <div class="ni on" data-p="dash"      onclick="go('dash')"><span class="ic">📊</span>Дашборд</div>
+      <div class="ni on" data-p="dash"      onclick="go('dash')">
+        <span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>
+        Дашборд
+      </div>
       <div class="nav-sec">База данных</div>
-      <div class="ni"    data-p="users"     onclick="go('users')"><span class="ic">👥</span>Пользователи</div>
-      <div class="ni"    data-p="payments"  onclick="go('payments')"><span class="ic">💳</span>Платежи</div>
+      <div class="ni" data-p="users"     onclick="go('users')">
+        <span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        Пользователи
+      </div>
+      <div class="ni" data-p="payments"  onclick="go('payments')">
+        <span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
+        Платежи
+      </div>
       <div class="nav-sec">Инструменты</div>
-      <div class="ni"    data-p="broadcast" onclick="go('broadcast')"><span class="ic">📢</span>Рассылка</div>
+      <div class="ni" data-p="broadcast" onclick="go('broadcast')">
+        <span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.5c0 4.4-3.6 8-8 8-1.5 0-2.8-.4-4-1.1L3 18l2.5-7C4.4 9.8 4 8.5 4 7c0-4.4 3.6-8 8-8 4.4 0 8 3.6 8 8z"/></svg></span>
+        Рассылка
+      </div>
     </nav>
     <div class="side-foot">
-      <button class="out-btn" onclick="doLogout()"><span>🚪</span> Выйти</button>
+      <button class="out-btn" onclick="doLogout()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Выйти
+      </button>
     </div>
   </aside>
 
   <div class="main">
     <div class="topbar">
-      <button class="menu-btn" onclick="openSidebar()">☰</button>
+      <button class="menu-btn" onclick="openSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
       <h1 id="ptitle">Дашборд</h1>
       <span class="status-dot">Онлайн</span>
     </div>
@@ -562,7 +646,7 @@ function fmtDate(s) {
   return new Date(s).toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'});
 }
 function today()    { return new Date().toISOString().slice(0, 10); }
-function btnLoad(id){ const el = $(id); if (el) { el.textContent = '⏳'; el.disabled = true; } }
+function btnLoad(id){ const el = $(id); if (el) { el.innerHTML = '<div class="sp" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle"></div>'; el.disabled = true; } }
 
 // ══════════════════════════════════════════
 // AUTH
@@ -614,25 +698,25 @@ async function renderDash() {
   setView(`
     <div class="sg">
       <div class="sc p">
-        <div class="sc-emoji">👥</div>
+        <div class="sc-emoji"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="color:var(--acc)"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <div class="sl">Пользователей</div>
         <div class="sv">${d.total_users}</div>
         <div class="ss">+${d.new_today} за сегодня</div>
       </div>
       <div class="sc g">
-        <div class="sc-emoji">✅</div>
+        <div class="sc-emoji"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="color:var(--grn)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div>
         <div class="sl">Активных подписок</div>
         <div class="sv">${d.active_subs}</div>
         <div class="ss">${d.expiring} истекают скоро</div>
       </div>
       <div class="sc y">
-        <div class="sc-emoji">💰</div>
+        <div class="sc-emoji"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ylw)"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
         <div class="sl">Выручка за месяц</div>
         <div class="sv">${fmtM(d.revenue_month)}</div>
         <div class="ss">Всего ${fmtM(d.revenue_total)}</div>
       </div>
       <div class="sc r">
-        <div class="sc-emoji">🚫</div>
+        <div class="sc-emoji"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="color:var(--red)"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div>
         <div class="sl">Заблокировано</div>
         <div class="sv">${d.banned}</div>
         <div class="ss">Из ${d.total_users} пользователей</div>
@@ -698,14 +782,14 @@ async function renderUsers() {
               <input class="si" id="usrch" placeholder="🔍 Имя, @username или ID"
                 value="${esc(uF.pendingSearch)}"
                 onkeydown="if(event.key==='Enter'){commitSearch();renderUsers()}">
-              <button class="btn btn-acc btn-sm" onclick="commitSearch();renderUsers()">Найти</button>
+              <button class="btn btn-acc btn-sm" onclick="commitSearch();renderUsers()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Найти</button>
             </div>
             <button class="ftgl ${uF.showFilters?'on':''}"
               onclick="uF.showFilters=!uF.showFilters;renderUsers()">
               ⚙ Фильтры${countF()?`<span class="f-count">${countF()}</span>`:''}
             </button>
-            ${countF()?`<button class="btn btn-d btn-sm" onclick="resetF()">✕</button>`:''}
-            <button class="btn btn-d btn-icon" title="Обновить" onclick="renderUsers()">↻</button>
+            ${countF()?`<button class="btn btn-d btn-sm" onclick="resetF()">${_svg('x','11')}</button>`:''}
+            <button class="btn btn-d btn-icon" title="Обновить" onclick="renderUsers()">${_svg('refresh','13')}</button>
           </div>
         </div>
         ${uF.showFilters ? renderFilterPanel() : ''}
@@ -807,15 +891,33 @@ function buildChips() {
   return c.join('');
 }
 
+function _svg(d, s = '12') {
+  const icons = {
+    gift:    `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5" rx="1"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>`,
+    plus:    `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+    cal:     `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+    stop:    `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>`,
+    ban:     `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`,
+    unban:   `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>`,
+    trash:   `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`,
+    more:    `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>`,
+    refresh: `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
+    x:       `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+    arrow:   `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+    warn:    `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  };
+  return icons[d] || '';
+}
+
 function userRow(u) {
   const hasActive = u.sub_id && u.sub_active && new Date(u.expires_at) > new Date();
   const hasAny    = !!u.sub_id;
   let subActions = '';
   if (!hasAny || !u.sub_active || new Date(u.expires_at) <= new Date())
-    subActions = `<button class="btn btn-grn btn-sm" onclick="confirmGrant(${u.user_id},'${esc(u.first_name)}')">🎁 Выдать</button>`;
+    subActions = `<button class="btn btn-grn btn-sm" onclick="confirmGrant(${u.user_id},'${esc(u.first_name)}')">${_svg('gift')} Выдать</button>`;
   else
-    subActions = `<button class="btn btn-acc btn-sm" onclick="confirmExtend(${u.user_id},'${esc(u.first_name)}')">➕</button>
-                  <button class="btn btn-red btn-sm" onclick="confirmDisable(${u.user_id},'${esc(u.first_name)}')">⏹</button>`;
+    subActions = `<button class="btn btn-acc btn-sm" onclick="confirmExtend(${u.user_id},'${esc(u.first_name)}')">${_svg('plus')} Продлить</button>
+                  <button class="btn btn-d btn-sm" onclick="confirmAdjust(${u.user_id},'${esc(u.first_name)}','${u.expires_at||''}')" title="Изменить срок">${_svg('cal')} Срок</button>`;
 
   return `<tr>
     <td>
@@ -829,7 +931,7 @@ function userRow(u) {
     <td>
       <div class="acts">
         ${subActions}
-        <button class="btn btn-d btn-icon btn-sm" onclick="showUser(${u.user_id})" title="Подробнее">···</button>
+        <button class="btn btn-d btn-icon btn-sm" onclick="showUser(${u.user_id})" title="Подробнее">${_svg('more')}</button>
       </div>
     </td>
   </tr>`;
@@ -877,7 +979,7 @@ async function showUser(uid) {
         <div class="mo-title">${esc(u.first_name)}${u.username?' (@'+esc(u.username)+')':''}</div>
         <div class="mo-sub">ID: ${u.user_id}</div>
       </div>
-      <button class="mo-x" onclick="closeMo()">✕</button>
+      <button class="mo-x" onclick="closeMo()">${_svg('x','13')}</button>
     </div>
     <div class="ir"><span class="il">Статус</span><span class="iv"><span class="bd ${u.is_banned?'r':'g'}">${u.is_banned?'Забанен':'Активен'}</span></span></div>
     <div class="ir"><span class="il">Подписка</span><span class="iv">${subBadge(u)}</span></div>
@@ -894,14 +996,15 @@ async function showUser(uid) {
       <tbody>${payRows}</tbody>
     </table>
     <div class="mo-act">
-      ${!hasActive?`<button class="btn btn-grn" onclick="closeMo();confirmGrant(${u.user_id},'${esc(u.first_name)}')">🎁 Выдать</button>`:''}
-      ${hasActive ?`<button class="btn btn-acc" onclick="closeMo();confirmExtend(${u.user_id},'${esc(u.first_name)}')">➕ Продлить</button>`:''}
-      ${hasActive ?`<button class="btn btn-red" onclick="closeMo();confirmDisable(${u.user_id},'${esc(u.first_name)}')">⏹ Отключить</button>`:''}
+      ${!hasActive?`<button class="btn btn-grn" onclick="closeMo();confirmGrant(${u.user_id},'${esc(u.first_name)}')">${_svg('gift','13')} Выдать</button>`:''}
+      ${hasActive ?`<button class="btn btn-acc" onclick="closeMo();confirmExtend(${u.user_id},'${esc(u.first_name)}')">${_svg('plus','13')} Продлить</button>`:''}
+      ${hasActive ?`<button class="btn btn-d" style="border-color:rgba(99,102,241,.25)" onclick="closeMo();confirmAdjust(${u.user_id},'${esc(u.first_name)}','${u.expires_at||''}')">${_svg('cal','13')} Изменить срок</button>`:''}
+      ${hasActive ?`<button class="btn btn-red" onclick="closeMo();confirmDisable(${u.user_id},'${esc(u.first_name)}')">${_svg('stop','13')} Отключить</button>`:''}
       ${u.is_banned
-        ?`<button class="btn btn-grn" onclick="doBan(${u.user_id},false)">✓ Разбанить</button>`
+        ?`<button class="btn btn-grn" onclick="doBan(${u.user_id},false)">${_svg('unban','13')} Разбанить</button>`
         :`<button class="btn btn-d" onclick="doBan(${u.user_id},true)"
-            style="border-color:rgba(239,68,68,.3);color:var(--red)">🚫 Забанить</button>`}
-      <button class="btn btn-red" onclick="closeMo();confirmDelete(${u.user_id},'${esc(u.first_name)}')">🗑 Удалить</button>
+            style="border-color:rgba(239,68,68,.3);color:var(--red)">${_svg('ban','13')} Забанить</button>`}
+      <button class="btn btn-red" onclick="closeMo();confirmDelete(${u.user_id},'${esc(u.first_name)}')">${_svg('trash','13')} Удалить</button>
     </div>`);
 }
 
@@ -910,31 +1013,31 @@ async function showUser(uid) {
 function confirmGrant(uid, name) {
   openMo(`
     <div class="mo-handle"></div>
-    <div class="confirm-ico">🎁</div>
+    <div class="confirm-ico ico-grn">${_svg('gift','38')}</div>
     <div class="mo-title" style="text-align:center;margin-bottom:8px">Выдать подписку</div>
     <div class="confirm-msg">Будет создан пользователь в PasarGuard<br>и добавлена подписка для <b>${esc(name)}</b></div>
     <div class="mo-btns">
       <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
-      <button class="btn btn-grn btn-lg" id="cb" onclick="doGrant(${uid})">✓ Выдать</button>
+      <button class="btn btn-grn btn-lg" id="cb" onclick="doGrant(${uid})">${_svg('gift','14')} Выдать</button>
     </div>`);
 }
 
 function confirmExtend(uid, name) {
   openMo(`
     <div class="mo-handle"></div>
-    <div class="confirm-ico">➕</div>
+    <div class="confirm-ico ico-acc">${_svg('plus','38')}</div>
     <div class="mo-title" style="text-align:center;margin-bottom:8px">Продлить подписку</div>
     <div class="confirm-msg">Подписка будет продлена в PasarGuard и БД<br>для <b>${esc(name)}</b></div>
     <div class="mo-btns">
       <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
-      <button class="btn btn-acc btn-lg" id="cb" onclick="doExtend(${uid})">✓ Продлить</button>
+      <button class="btn btn-acc btn-lg" id="cb" onclick="doExtend(${uid})">${_svg('plus','14')} Продлить</button>
     </div>`);
 }
 
 function confirmDisable(uid, name) {
   openMo(`
     <div class="mo-handle"></div>
-    <div class="confirm-ico">⏹</div>
+    <div class="confirm-ico ico-red">${_svg('stop','38')}</div>
     <div class="mo-title" style="text-align:center;margin-bottom:8px">Отключить подписку</div>
     <div class="confirm-msg">Подписка <b>${esc(name)}</b> будет деактивирована</div>
     <label class="chk-row">
@@ -942,14 +1045,14 @@ function confirmDisable(uid, name) {
     </label>
     <div class="mo-btns">
       <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
-      <button class="btn btn-red btn-lg" id="cb" onclick="doDisable(${uid})">✓ Отключить</button>
+      <button class="btn btn-red btn-lg" id="cb" onclick="doDisable(${uid})">${_svg('stop','14')} Отключить</button>
     </div>`);
 }
 
 function confirmDelete(uid, name) {
   openMo(`
     <div class="mo-handle"></div>
-    <div class="confirm-ico">🗑</div>
+    <div class="confirm-ico ico-red">${_svg('trash','38')}</div>
     <div class="mo-title" style="text-align:center;margin-bottom:8px">Удалить пользователя</div>
     <div class="confirm-msg">
       Пользователь <b>${esc(name)}</b> (ID: ${uid}) будет навсегда удалён<br>
@@ -960,8 +1063,158 @@ function confirmDelete(uid, name) {
     </label>
     <div class="mo-btns">
       <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
-      <button class="btn btn-red btn-lg" id="cb" onclick="doDelete(${uid})">🗑 Удалить</button>
+      <button class="btn btn-red btn-lg" id="cb" onclick="doDelete(${uid})">${_svg('trash','14')} Удалить</button>
     </div>`);
+}
+
+// ── Adjust subscription (slider + exact date) ─────
+
+function confirmAdjust(uid, name, expiresAt) {
+  const curTs  = expiresAt ? Math.floor(new Date(expiresAt).getTime() / 1000) : Math.floor(Date.now() / 1000);
+  const curDt  = new Date(curTs * 1000);
+
+  // Format for date input (YYYY-MM-DD)
+  const pad    = n => String(n).padStart(2, '0');
+  const ymd    = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const hm     = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const curDateVal  = ymd(curDt);
+  const curTimeVal  = hm(curDt);
+
+  openMo(`
+    <div class="mo-handle"></div>
+    <div class="mo-head">
+      <div>
+        <div class="mo-title">${_svg('cal','16')} Изменить срок подписки</div>
+        <div class="mo-sub">${esc(name)} — сейчас: ${fmtD(expiresAt)}</div>
+      </div>
+      <button class="mo-x" onclick="closeMo()">${_svg('x','13')}</button>
+    </div>
+
+    <div class="adj-tabs">
+      <button class="adj-tab on" id="tab-days" onclick="adjTab('days')">По дням</button>
+      <button class="adj-tab"    id="tab-date" onclick="adjTab('date')">Точная дата</button>
+    </div>
+
+    <!-- Pane: slider -->
+    <div class="adj-pane on" id="pane-days">
+      <div class="adj-days-display zer" id="adj-num">0</div>
+      <div class="adj-days-suffix" id="adj-suffix">дней (без изменений)</div>
+      <div class="adj-slider-wrap">
+        <input type="range" class="adj-slider" id="adj-slider"
+          min="-365" max="365" value="0" step="1"
+          oninput="adjSliderMove(this.value, ${curTs})">
+        <div class="adj-slider-labels"><span>−365</span><span>0</span><span>+365</span></div>
+      </div>
+      <div class="adj-preview" id="adj-preview-days">
+        <div>
+          <div class="adj-preview-label">Текущий срок</div>
+          <div class="adj-preview-val">${fmtDate(expiresAt)}</div>
+        </div>
+        <div class="adj-preview-arrow">${_svg('arrow','16')}</div>
+        <div>
+          <div class="adj-preview-label">Новый срок</div>
+          <div class="adj-preview-val adj-new" id="adj-new-days">${fmtDate(expiresAt)}</div>
+        </div>
+      </div>
+      <div id="adj-warn-days"></div>
+    </div>
+
+    <!-- Pane: exact date -->
+    <div class="adj-pane" id="pane-date">
+      <div style="margin-bottom:8px;font-size:12px;color:var(--txt2)">Выберите новую дату и время истечения:</div>
+      <div style="display:flex;gap:8px;margin-bottom:4px">
+        <input type="date" class="adj-date-field" id="adj-date-inp"
+          value="${curDateVal}" oninput="adjDateMove(${curTs})">
+        <input type="time" class="adj-date-field" id="adj-time-inp"
+          value="${curTimeVal}" style="width:120px;flex-shrink:0" oninput="adjDateMove(${curTs})">
+      </div>
+      <div class="adj-preview" id="adj-preview-date">
+        <div>
+          <div class="adj-preview-label">Текущий срок</div>
+          <div class="adj-preview-val">${fmtDate(expiresAt)}</div>
+        </div>
+        <div class="adj-preview-arrow">${_svg('arrow','16')}</div>
+        <div>
+          <div class="adj-preview-label">Новый срок</div>
+          <div class="adj-preview-val adj-new" id="adj-new-date">${fmtDate(expiresAt)}</div>
+        </div>
+      </div>
+      <div id="adj-warn-date"></div>
+      <div class="adj-date-note">Подсказка: для теста автосписания установите время через 1–2 часа от текущего.</div>
+    </div>
+
+    <div class="mo-btns" style="margin-top:20px">
+      <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
+      <button class="btn btn-primary btn-lg" id="cb" onclick="doAdjust(${uid}, ${curTs})">${_svg('cal','14')} Применить</button>
+    </div>`);
+
+  // Init slider gradient
+  adjSliderMove(0, curTs);
+}
+
+function adjTab(tab) {
+  ['days','date'].forEach(t => {
+    $('tab-'+t).classList.toggle('on', t === tab);
+    $('pane-'+t).classList.toggle('on', t === tab);
+  });
+}
+
+function adjSliderMove(val, curTs) {
+  val = parseInt(val);
+  const sl  = $('adj-slider');
+  const pct = ((val + 365) / 730 * 100).toFixed(1);
+  if (sl) {
+    sl.style.setProperty('--pct', pct + '%');
+    sl.value = val;
+  }
+  const numEl = $('adj-num');
+  const sfxEl = $('adj-suffix');
+  const newEl = $('adj-new-days');
+  const warnEl = $('adj-warn-days');
+  if (!numEl) return;
+
+  numEl.textContent = (val > 0 ? '+' : '') + val;
+  numEl.className   = 'adj-days-display ' + (val < 0 ? 'neg' : val > 0 ? 'pos' : 'zer');
+
+  const abs = Math.abs(val);
+  const sfx = abs === 0 ? 'дней (без изменений)'
+    : abs === 1 ? (val > 0 ? 'день' : 'день')
+    : abs < 5  ? (val > 0 ? 'дня' : 'дня')
+    : 'дней';
+  sfxEl.textContent = sfx;
+
+  const newTs = curTs + val * 86400;
+  const newDt = new Date(newTs * 1000);
+  if (newEl) newEl.textContent = newDt.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'});
+
+  if (warnEl) {
+    if (val < 0 && newTs < Date.now()/1000) {
+      warnEl.innerHTML = `<div class="adj-warn">${_svg('warn','14')} Подписка окажется в прошлом — будет деактивирована</div>`;
+    } else if (val < 0) {
+      warnEl.innerHTML = `<div class="adj-warn">${_svg('warn','14')} Срок уменьшается — убедитесь, что это намеренно</div>`;
+    } else {
+      warnEl.innerHTML = '';
+    }
+  }
+}
+
+function adjDateMove(curTs) {
+  const dateEl = $('adj-date-inp');
+  const timeEl = $('adj-time-inp');
+  const newEl  = $('adj-new-date');
+  const warnEl = $('adj-warn-date');
+  if (!dateEl || !newEl) return;
+  const dtStr = dateEl.value + 'T' + (timeEl?.value || '00:00');
+  const newDt = new Date(dtStr);
+  if (isNaN(newDt)) return;
+  newEl.textContent = newDt.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+  if (warnEl) {
+    if (newDt.getTime() < Date.now()) {
+      warnEl.innerHTML = `<div class="adj-warn">${_svg('warn','14')} Выбранная дата уже в прошлом — подписка деактивируется</div>`;
+    } else {
+      warnEl.innerHTML = '';
+    }
+  }
 }
 
 // ── Action handlers ────────────────────────────────
@@ -970,13 +1223,13 @@ async function doGrant(uid) {
   btnLoad('cb');
   const d = await api('/users/'+uid+'/sub/grant', {method:'POST', body:{}});
   closeMo();
-  d.error ? toast(d.error, 'err') : (toast('✅ Подписка выдана!'), renderUsers());
+  d.error ? toast(d.error, 'err') : (toast('Подписка выдана!'), renderUsers());
 }
 async function doExtend(uid) {
   btnLoad('cb');
   const d = await api('/users/'+uid+'/sub/extend', {method:'POST', body:{}});
   closeMo();
-  d.error ? toast(d.error, 'err') : (toast('✅ Продлена!'), renderUsers());
+  d.error ? toast(d.error, 'err') : (toast('Продлена!'), renderUsers());
 }
 async function doDisable(uid) {
   const del = $('del-mz')?.checked || false;
@@ -985,16 +1238,45 @@ async function doDisable(uid) {
   closeMo();
   d.error ? toast(d.error, 'err') : (toast('Подписка отключена'), renderUsers());
 }
-async function doBan(uid, banned) {
+async function doAdjust(uid, curTs) {
+  // Determine active tab
+  const isDateTab = $('tab-date')?.classList.contains('on');
+  let body = {};
+  if (isDateTab) {
+    const dateEl = $('adj-date-inp');
+    const timeEl = $('adj-time-inp');
+    if (!dateEl?.value) { toast('Укажите дату', 'err'); return; }
+    const dtStr = dateEl.value + 'T' + (timeEl?.value || '00:00');
+    const ts    = Math.floor(new Date(dtStr).getTime() / 1000);
+    if (isNaN(ts)) { toast('Некорректная дата', 'err'); return; }
+    body = { exact_ts: ts };
+  } else {
+    const sl  = $('adj-slider');
+    const val = sl ? parseInt(sl.value) : 0;
+    body = { days: val, exact_ts: curTs + val * 86400 };
+  }
+  btnLoad('cb');
+  const d = await api('/users/'+uid+'/sub/adjust', {method:'POST', body});
+  closeMo();
+  if (d.error) {
+    toast(d.error, 'err');
+  } else {
+    const newDt = new Date(d.new_expires_ts * 1000).toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'});
+    toast('Срок обновлён → ' + newDt);
+    renderUsers();
+  }
+}
+
+
   const d = await api('/users/'+uid+'/ban', {method:'POST', body:{banned}});
-  if (d.ok) { toast(banned?'🚫 Забанен':'✓ Разбанен', banned?'err':'ok'); closeMo(); renderUsers(); }
+  if (d.ok) { toast(banned?'Забанен':'Разбанен', banned?'err':'ok'); closeMo(); renderUsers(); }
 }
 async function doDelete(uid) {
   const del = $('del-mz-full')?.checked || false;
   btnLoad('cb');
   const d = await api('/users/'+uid, {method:'DELETE', body:{delete_panel:del}});
   closeMo();
-  d.error ? toast(d.error, 'err') : (toast('🗑 Пользователь удалён'), renderUsers());
+  d.error ? toast(d.error, 'err') : (toast('Пользователь удалён'), renderUsers());
 }
 
 // ══════════════════════════════════════════
@@ -1033,7 +1315,7 @@ async function renderPayments() {
               <option value="pending"   ${pF.status==='pending'  ?'selected':''}>Ожидающие</option>
               <option value="canceled"  ${pF.status==='canceled' ?'selected':''}>Отменённые</option>
             </select>
-            <button class="btn btn-d btn-icon" title="Обновить" onclick="renderPayments()">↻</button>
+            <button class="btn btn-d btn-icon" title="Обновить" onclick="renderPayments()">${_svg('refresh','13')}</button>
           </div>
         </div>
       </div>
@@ -1108,7 +1390,7 @@ async function sendBroadcast() {
   const el = $('bres');
   el.style.display = 'block';
   el.className = 'bcast-ok';
-  el.innerHTML = `✅ Отправлено: <b>${d.sent}</b>, ошибок: <b>${d.failed}</b>`;
+  el.innerHTML = `Отправлено: <b>${d.sent}</b>, ошибок: <b>${d.failed}</b>`;
 }
 
 // ══════════════════════════════════════════
