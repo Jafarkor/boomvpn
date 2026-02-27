@@ -26,7 +26,9 @@ from bot.database.manager import get_pool
 from bot.database.subscriptions import (
     create_subscription,
     extend_subscription,
+    reactivate_subscription,
     get_active_subscription,
+    get_any_subscription,
 )
 from bot.services.pasarguard import pasarguard
 
@@ -66,39 +68,38 @@ async def create_paid_subscription(
     user_id: int, payment_method_id: str | None = None
 ) -> str:
     """
-    Создаёт или продлевает платную подписку на PLAN_DAYS дней.
+    Создаёт, продлевает или реактивирует платную подписку на PLAN_DAYS дней.
     Возвращает ссылку подписки.
 
-    Для новой подписки: сначала PasarGuard, потом DB.
-    Для продления: сначала PasarGuard, потом DB. Если PasarGuard падает при
-    продлении — ошибка логируется, но подписка считается успешной (DB уже актуальна).
+    Логика:
+    - Есть активная подписка → продлить (extend).
+    - Есть неактивная подписка → реактивировать (reactivate), PasarGuard-пользователь уже существует.
+    - Нет ни одной подписки → создать с нуля (create).
+
+    Подписка создаётся ОДИН РАЗ в жизни пользователя.
+    При последующих покупках всегда переиспользуется существующая запись и существующий
+    PasarGuard-пользователь — ссылка VPN у пользователя остаётся прежней.
     """
     username = _panel_username(user_id)
     existing = await get_active_subscription(user_id)
 
     if existing:
-        # ── Продление существующей подписки ───────────────────────────────────
-        # 1. PasarGuard
+        # ── Продление активной подписки ───────────────────────────────────────
         try:
             await pasarguard.extend_user(username, PLAN_DAYS)
         except Exception as pg_exc:
-            # PasarGuard упал, но DB будет обновлена — логируем и продолжаем.
-            # Пользователь получит подписку в DB; PasarGuard нужно проверить вручную.
             logger.error(
                 "PasarGuard extend_user FAILED for user %s (panel: %s): %s — "
                 "DB will be updated anyway. Check PasarGuard manually.",
                 user_id, username, pg_exc,
             )
 
-        # 2. DB
         await extend_subscription(existing["id"], days=PLAN_DAYS)
 
-        # Возвращаем сохранённый URL; если нет — запрашиваем из PasarGuard
         url = existing.get("subscription_url")
         if not url:
             try:
                 url = await pasarguard.get_subscription_url(username)
-                # Сохраняем на будущее
                 async with get_pool().acquire() as conn:
                     await conn.execute(
                         "UPDATE subscriptions SET subscription_url = $1 WHERE id = $2",
@@ -108,19 +109,53 @@ async def create_paid_subscription(
                 url = ""
 
     else:
-        # ── Новая подписка ────────────────────────────────────────────────────
-        # 1. PasarGuard (сначала! если упадёт — DB не трогаем)
-        await pasarguard.ensure_user(username, days=PLAN_DAYS)
-        url = await pasarguard.get_subscription_url(username)
+        any_sub = await get_any_subscription(user_id)
 
-        # 2. DB
-        await create_subscription(
-            user_id=user_id,
-            panel_username=username,
-            payment_method_id=payment_method_id,
-            auto_renew=payment_method_id is not None,
-            subscription_url=url,
-        )
+        if any_sub:
+            # ── Реактивация существующей (истёкшей) подписки ─────────────────
+            # PasarGuard-пользователь уже создан — просто продлеваем его.
+            # Ссылка VPN у пользователя остаётся прежней.
+            try:
+                await pasarguard.extend_user(username, PLAN_DAYS)
+            except Exception as pg_exc:
+                logger.error(
+                    "PasarGuard extend_user FAILED during reactivation for user %s: %s",
+                    user_id, pg_exc,
+                )
+
+            await reactivate_subscription(
+                any_sub["id"],
+                payment_method_id=payment_method_id,
+                days=PLAN_DAYS,
+            )
+
+            # URL берём из старой записи; если нет — запрашиваем из PasarGuard
+            url = any_sub.get("subscription_url")
+            if not url:
+                try:
+                    url = await pasarguard.get_subscription_url(username)
+                    async with get_pool().acquire() as conn:
+                        await conn.execute(
+                            "UPDATE subscriptions SET subscription_url = $1 WHERE id = $2",
+                            url, any_sub["id"],
+                        )
+                except Exception:
+                    url = ""
+
+            logger.info("Reactivated subscription %s for user %s", any_sub["id"], user_id)
+
+        else:
+            # ── Первая покупка — создаём с нуля ──────────────────────────────
+            await pasarguard.ensure_user(username, days=PLAN_DAYS)
+            url = await pasarguard.get_subscription_url(username)
+
+            await create_subscription(
+                user_id=user_id,
+                panel_username=username,
+                payment_method_id=payment_method_id,
+                auto_renew=payment_method_id is not None,
+                subscription_url=url,
+            )
 
     logger.info("Paid subscription processed for user %s (%d days)", user_id, PLAN_DAYS)
     return url

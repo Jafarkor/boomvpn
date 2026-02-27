@@ -7,6 +7,7 @@ services/scheduler.py — планировщик задач (APScheduler).
 """
 
 import logging
+from datetime import datetime, timezone
 
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -14,7 +15,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from bot.database.subscriptions import get_expiring_subscriptions, deactivate_subscription
 from bot.services.pasarguard import pasarguard
 from bot.services.payment import charge_auto_renew
-from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 

@@ -14,6 +14,36 @@ async def get_active_subscription(user_id: int) -> dict | None:
     return dict(row) if row else None
 
 
+async def get_any_subscription(user_id: int) -> dict | None:
+    """Возвращает любую подписку пользователя (активную или нет) — для переиспользования."""
+    async with get_pool().acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT * FROM subscriptions
+            WHERE user_id = $1
+            ORDER BY id DESC LIMIT 1
+        """, user_id)
+    return dict(row) if row else None
+
+
+async def reactivate_subscription(
+    subscription_id: int,
+    payment_method_id: str | None = None,
+    days: int | None = None,
+) -> None:
+    """Реактивирует существующую подписку: включает, продлевает, обновляет метод оплаты."""
+    extend_days = days if days is not None else PLAN_DAYS
+    expires_at = datetime.utcnow() + timedelta(days=extend_days)
+    async with get_pool().acquire() as conn:
+        await conn.execute("""
+            UPDATE subscriptions
+            SET is_active = TRUE,
+                expires_at = $1,
+                yukassa_payment_method_id = COALESCE($2, yukassa_payment_method_id),
+                auto_renew = ($2 IS NOT NULL)
+            WHERE id = $3
+        """, expires_at, payment_method_id, subscription_id)
+
+
 async def create_subscription(
     user_id: int,
     panel_username: str,
