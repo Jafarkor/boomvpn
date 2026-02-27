@@ -14,6 +14,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from bot.database.subscriptions import get_expiring_subscriptions, deactivate_subscription
 from bot.services.pasarguard import pasarguard
 from bot.services.payment import charge_auto_renew
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ def setup_scheduler(bot: Bot) -> None:
         _auto_renew_task,
         trigger="interval",
         hours=1,
+        next_run_time=datetime.now(),
         id="auto_renew",
         kwargs={"bot": bot},
     )
