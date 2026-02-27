@@ -28,7 +28,7 @@ def menu_kb_with_sub() -> InlineKeyboardMarkup:
     kb.button(
         text="Подключить VPN",
         callback_data="instruction",
-        icon_custom_emoji_id="5877465816030515018",
+        icon_custom_emoji_id="5289722755871162900",
     )
     kb.button(
         text="Настройки",
