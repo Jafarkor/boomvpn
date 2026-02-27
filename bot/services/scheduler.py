@@ -29,7 +29,7 @@ def setup_scheduler(bot: Bot) -> None:
         _auto_renew_task,
         trigger="interval",
         hours=1,
-        next_run_time=datetime.now(),
+        next_run_time=datetime.datetime.now(),
         id="auto_renew",
         kwargs={"bot": bot},
     )
