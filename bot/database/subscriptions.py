@@ -63,10 +63,10 @@ async def save_payment_method(subscription_id: int, method_id: str) -> None:
 
 
 async def deactivate_subscription(subscription_id: int) -> None:
-    """Деактивирует подписку."""
+    """Деактивирует подписку и сбрасывает сохранённый метод оплаты."""
     async with get_pool().acquire() as conn:
         await conn.execute(
-            "UPDATE subscriptions SET is_active = FALSE WHERE id = $1",
+            "UPDATE subscriptions SET is_active = FALSE, yukassa_payment_method_id = NULL WHERE id = $1",
             subscription_id,
         )
 

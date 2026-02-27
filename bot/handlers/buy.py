@@ -57,19 +57,8 @@ async def _process_check_payment(callback: CallbackQuery, user_id: int, payment_
             saved_method_id = method_id if (pm and getattr(pm, "saved", False)) else None
             await create_paid_subscription(user_id, payment_method_id=saved_method_id)
 
-            # Если метод есть, но saved=False — пытаемся сохранить id в БД
-            # сразу, не дожидаясь вебхука (best-effort).
-            if method_id and not saved_method_id:
-                sub = await get_active_subscription(user_id)
-                if sub and not sub.get("yukassa_payment_method_id"):
-                    try:
-                        await save_payment_method(sub["id"], method_id)
-                        logger.info(
-                            "Saved payment_method_id %s for user %s (pre-webhook)",
-                            method_id, user_id,
-                        )
-                    except Exception as e:
-                        logger.warning("Could not pre-save payment method: %s", e)
+            # payment_method_id сохраняется только через вебхук (saved=True).
+            # Сохранять id при saved=False нельзя — ЮКасса вернёт ошибку при автосписании.
 
             await edit_photo_page(
                 callback,
