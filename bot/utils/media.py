@@ -42,6 +42,7 @@ PAGE_PHOTOS: dict[str, Path] = {
     "settings":    MEDIA_DIR / "settings.png",
     "sub_url":     MEDIA_DIR / "sub_url.png",
     "buy":         MEDIA_DIR / "buy.png",
+    "support":     MEDIA_DIR / "support.png",
 }
 
 

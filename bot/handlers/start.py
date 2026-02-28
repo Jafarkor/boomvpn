@@ -90,5 +90,8 @@ async def cmd_start(message: Message) -> None:
 
 @router.message(Command("support"))
 async def support(message: Message) -> None:
-    await message.answer("Возникли проблемы или есть какие то вопросы?\n\nНапишите в поддержку <tg-emoji emoji-id=\"5339267587337370029\">😉</tg-emoji>",
-                         reply_markup=support_kb())
+    await send_photo_page(
+        message=message,
+        page="Support",
+        caption="Возникли проблемы или есть какие то вопросы?\n\nНапишите в поддержку  <tg-emoji emoji-id=\"5339267587337370029\">😉</tg-emoji>",
+        reply_markup=support_kb())
