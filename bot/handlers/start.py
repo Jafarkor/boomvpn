@@ -1,5 +1,5 @@
 """
-handlers/start.py — обработка команды /start.
+handlers/start.py — обработка команды /start и /support
 
 Поток для нового пользователя:
   1. Регистрация в БД
@@ -15,12 +15,12 @@ handlers/start.py — обработка команды /start.
 import logging
 
 from aiogram import Router
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.types import Message
 
 from bot.database.subscriptions import get_active_subscription
 from bot.database.users import get_user, register_user, get_referral_count
-from bot.keyboards.user import back_to_menu_kb, menu_kb_no_sub, menu_kb_with_sub
+from bot.keyboards.user import back_to_menu_kb, menu_kb_no_sub, menu_kb_with_sub, support_kb
 from bot.messages import welcome_new, welcome_new_no_sub, welcome_back, menu_text
 from bot.services.referral import handle_referral
 from bot.services.subscription import create_gift_subscription
@@ -86,3 +86,9 @@ async def cmd_start(message: Message) -> None:
             await handle_referral(referrer_id, tg_user.id, bot=message.bot)
         except Exception as exc:
             logger.error("Referral handling error: %s", exc)
+
+
+@router.message(Command("support"))
+async def support(message: Message) -> None:
+    await message.answer("Если возникли проблемы с подключеним к VPN или у вас есть какие то вопросы, напишите в Поддержку по кнопке ниже. Мы постараемся решить вашу проблему как можно быстрее <tg-emoji emoji-id=\"5339267587337370029\">😉</tg-emoji>",
+                         reply_markup=support_kb)

@@ -9,6 +9,7 @@ from decouple import config, Csv
 
 BOT_TOKEN: str = config("BOT_TOKEN")
 ADMIN_IDS: list[int] = [int(i) for i in config("ADMIN_IDS", cast=Csv())]
+SUPPORT_USERNAME: str = "boompi_ai_support"
 
 # ── Webhook ───────────────────────────────────────────────────────────────────
 
