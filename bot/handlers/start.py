@@ -91,4 +91,4 @@ async def cmd_start(message: Message) -> None:
 @router.message(Command("support"))
 async def support(message: Message) -> None:
     await message.answer("Если возникли проблемы с подключеним к VPN или у вас есть какие то вопросы, напишите в Поддержку по кнопке ниже. Мы постараемся решить вашу проблему как можно быстрее <tg-emoji emoji-id=\"5339267587337370029\">😉</tg-emoji>",
-                         reply_markup=support_kb)
+                         reply_markup=support_kb())
