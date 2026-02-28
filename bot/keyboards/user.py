@@ -27,7 +27,7 @@ def support_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     kb.button(text="Написать в поддержку",
               url=f"t.me/{SUPPORT_USERNAME}",
-              icon_custom_emoji_id="5258096772776991776",)
+              icon_custom_emoji_id="6021860481923288796",)
     kb.adjust(1)
     return kb.as_markup()
 
