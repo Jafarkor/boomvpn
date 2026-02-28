@@ -93,5 +93,5 @@ async def support(message: Message) -> None:
     await send_photo_page(
         message=message,
         page="support",
-        caption="Возникли проблемы или есть какие то вопросы?\n\nНапишите в поддержку  <tg-emoji emoji-id=\"5339267587337370029\">😉</tg-emoji>",
+        caption="Возникли проблемы или есть какие то вопросы? Напишите в поддержку",
         reply_markup=support_kb())
