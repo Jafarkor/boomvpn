@@ -64,24 +64,23 @@ def menu_text(sub: dict | None, ref_link: str, ref_count: int) -> str:
         if isinstance(expires, str):
             expires = datetime.fromisoformat(expires)
         days_left = max(0, (expires - datetime.utcnow()).days)
-        auto_icon = '<tg-emoji emoji-id="5411197345968701560">✅</tg-emoji>' if sub.get("auto_renew") else '<tg-emoji emoji-id="5416076321442777828">❌</tg-emoji>'
         lines.append(
             f'<tg-emoji emoji-id="5350404270032166927">🏠</tg-emoji> <b>Подписка</b>\n'
-            f"├ <b>Осталось дней:</b> {days_left}\n"
-            f"╰ <b>Автопродление:</b> {auto_icon}"
+            f"╰ <b>Осталось дней:</b> {days_left}\n"
         )
     else:
         lines.append(
             '<tg-emoji emoji-id="5350404270032166927">🏠</tg-emoji> <b>Подписка</b>\n'
-            "└ Не активна"
+            "╰ Не активна"
         )
 
     # Блок рефералов
     lines.append(
-        f'\n<tg-emoji emoji-id="6001526766714227911">👥</tg-emoji> <b>Рефералы</b>\n'
+        f'\n<tg-emoji emoji-id="6001526766714227911">👥</tg-emoji> <b>Друзья</b>\n'
         f"├ <b>Приглашено:</b> {ref_count}\n"
-        f"├ <b>Бонус:</b> +{REFERRAL_BONUS_DAYS} дней за друга\n"
-        f"╰ <code>{ref_link}</code>"
+        f"╰ <b> +{REFERRAL_BONUS_DAYS} дней за друга</b>\n"
+        f"Ссылка для друзей (нажми, чтобы скопировать):"
+        f"<blockquote><code>{ref_link}</code></blockquote>"
     )
 
     return "\n".join(lines)

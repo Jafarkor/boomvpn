@@ -42,6 +42,11 @@ def menu_kb_with_sub() -> InlineKeyboardMarkup:
         icon_custom_emoji_id="5172425562634847208",
     )
     kb.button(
+        text="Продлить подписку",
+        callback_data="buy",
+        icon_custom_emoji_id="5801031740512275821",
+    )
+    kb.button(
         text="Настройки",
         callback_data="settings",
         icon_custom_emoji_id="5258096772776991776",
@@ -59,9 +64,6 @@ def settings_kb(auto_renew: bool) -> InlineKeyboardMarkup:
     kb.button(text=auto_label,
               icon_custom_emoji_id="5258419835922030550",
               callback_data="toggle_renew")
-    kb.button(text="Продлить вручную",
-              icon_custom_emoji_id="5445353829304387411",
-              callback_data="buy")
     kb.button(text="← Назад",
               callback_data="menu")
     kb.adjust(1)
@@ -80,14 +82,6 @@ def pay_kb(payment_url: str) -> InlineKeyboardMarkup:
               icon_custom_emoji_id="5411197345968701560")
     kb.button(text="✕ Отмена",              callback_data="menu")
     kb.adjust(1)
-    return kb.as_markup()
-
-
-# ── Инструкция ────────────────────────────────────────────────────────────────
-
-def instruction_kb() -> InlineKeyboardMarkup:
-    kb = InlineKeyboardBuilder()
-    kb.button(text="Открыть меню →", callback_data="menu")
     return kb.as_markup()
 
 
