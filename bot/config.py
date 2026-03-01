@@ -10,7 +10,7 @@ from decouple import config, Csv
 BOT_TOKEN: str = config("BOT_TOKEN")
 ADMIN_IDS: list[int] = [int(i) for i in config("ADMIN_IDS", cast=Csv())]
 SUPPORT_USERNAME: str = "boompi_ai_support"
-CHANNEL_USERNAME: str = config("CHANNEL_USERNAME", default="@your_channel")
+CHANNEL_USERNAME: str = config("CHANNEL_USERNAME", default="@boompi_ai")
 
 # ── Webhook ───────────────────────────────────────────────────────────────────
 
