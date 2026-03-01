@@ -46,10 +46,10 @@ async def cb_check_channel_sub(callback: CallbackQuery, redis=None) -> None:
                 pass
         return
 
-    # Подписан — сразу записываем в кэш "1" на 60 сек
+    # Подписан — сразу записываем в кэш "1" на 20 сек
     if redis:
         try:
-            await redis.setex(f"sub_ok:{user_id}", 60, "1")
+            await redis.setex(f"sub_ok:{user_id}", 20, "1")
         except Exception:
             pass
 
