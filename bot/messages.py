@@ -66,7 +66,7 @@ def menu_text(sub: dict | None, ref_link: str, ref_count: int) -> str:
         days_left = max(0, (expires - datetime.utcnow()).days)
         lines.append(
             f'<tg-emoji emoji-id="5350404270032166927">🏠</tg-emoji> <b>Подписка</b>\n'
-            f"╰ <b>Осталось дней:</b> {days_left}\n"
+            f"╰ <b>Осталось дней:</b> {days_left}"
         )
     else:
         lines.append(
@@ -78,7 +78,7 @@ def menu_text(sub: dict | None, ref_link: str, ref_count: int) -> str:
     lines.append(
         f'\n<tg-emoji emoji-id="6001526766714227911">👥</tg-emoji> <b>Друзья</b>\n'
         f"├ <b>Приглашено:</b> {ref_count}\n"
-        f"╰ <b> +{REFERRAL_BONUS_DAYS} дней за друга</b>\n"
+        f"╰ <b>+{REFERRAL_BONUS_DAYS} дней за друга</b>\n\n"
         f"Ссылка для друзей (нажми, чтобы скопировать):"
         f"<blockquote><code>{ref_link}</code></blockquote>"
     )
