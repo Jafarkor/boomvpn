@@ -1,17 +1,3 @@
-"""
-handlers/start.py — обработка команды /start и /support
-
-Поток для нового пользователя:
-  1. Регистрация в БД
-  2. Создание подписки в Marzban + БД
-  3. Приветствие с уведомлением о подписке
-  4. Главное меню
-  5. Бонус пригласившему (если есть реферер)
-
-Поток для вернувшегося:
-  → Приветствие с кнопкой в меню
-"""
-
 import logging
 
 from aiogram import Router
@@ -20,10 +6,11 @@ from aiogram.types import Message
 
 from bot.database.subscriptions import get_active_subscription
 from bot.database.users import get_user, register_user, get_referral_count
-from bot.keyboards.user import back_to_menu_kb, menu_kb_no_sub, menu_kb_with_sub, support_kb
+from bot.keyboards.user import back_to_menu_kb, menu_kb_no_sub, menu_kb_with_sub, support_kb, channel_sub_kb
 from bot.messages import welcome_new, welcome_new_no_sub, welcome_back, menu_text
 from bot.services.referral import handle_referral
 from bot.services.subscription import create_gift_subscription
+from bot.utils.channel import is_subscribed
 from bot.utils.media import send_photo_page
 
 logger = logging.getLogger(__name__)
@@ -52,34 +39,36 @@ async def cmd_start(message: Message) -> None:
 
     existing = await get_user(tg_user.id)
     if existing:
+        # Возвращающийся пользователь — проверяем подписку на канал
+        if not await is_subscribed(tg_user.id, message.bot):
+            await message.answer(
+                "📢 Для доступа к боту необходимо подписаться на наш официальный канал:",
+                reply_markup=channel_sub_kb(),
+            )
+            return
         await message.answer(welcome_back(tg_user.first_name), reply_markup=back_to_menu_kb())
         return
 
     is_new = await register_user(tg_user, referred_by=referrer_id)
     if not is_new:
+        # Гонка — пользователь уже есть
+        if not await is_subscribed(tg_user.id, message.bot):
+            await message.answer(
+                "📢 Для доступа к боту необходимо подписаться на наш официальный канал:",
+                reply_markup=channel_sub_kb(),
+            )
+            return
         await message.answer(welcome_back(tg_user.first_name), reply_markup=back_to_menu_kb())
         return
 
-    # Создаём подписку ДО отправки приветствия
+    # Новый пользователь — создаём подписку, отправляем приветствие с кнопкой канала
     try:
         await create_gift_subscription(tg_user.id)
         logger.info("Gift subscription OK for user %s", tg_user.id)
-        await message.answer(welcome_new(tg_user.first_name))
+        await message.answer(welcome_new(tg_user.first_name), reply_markup=channel_sub_kb())
     except Exception as exc:
         logger.error("Gift subscription failed for user %s: %s", tg_user.id, exc)
-        await message.answer(welcome_new_no_sub(tg_user.first_name))
-
-    # Показываем главное меню
-    bot_info = await message.bot.get_me()
-    sub = await get_active_subscription(tg_user.id)
-    ref_count = await get_referral_count(tg_user.id)
-    caption = menu_text(
-        sub=sub,
-        ref_link=_ref_link(bot_info.username, tg_user.id),
-        ref_count=ref_count,
-    )
-    kb = menu_kb_with_sub() if sub else menu_kb_no_sub()
-    await send_photo_page(message, "menu", caption, kb)
+        await message.answer(welcome_new_no_sub(tg_user.first_name), reply_markup=channel_sub_kb())
 
     if referrer_id and referrer_id != tg_user.id:
         try:

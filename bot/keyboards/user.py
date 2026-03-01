@@ -7,10 +7,20 @@ keyboards/user.py — клавиатуры пользователя.
 
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from bot.config import SUPPORT_USERNAME
+from bot.config import SUPPORT_USERNAME, CHANNEL_LINK
 
 
-# ── Главное меню ──────────────────────────────────────────────────────────────
+# ── Подписка на канал ─────────────────────────────────────────────────────────
+
+def channel_sub_kb() -> InlineKeyboardMarkup:
+    """Кнопки для подписки на канал и проверки подписки."""
+    kb = InlineKeyboardBuilder()
+    kb.button(text="📢 Подписаться на канал", url=CHANNEL_LINK)
+    kb.button(text="✅ Я подписался — проверить", callback_data="check_channel_sub")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
 
 def menu_kb_no_sub() -> InlineKeyboardMarkup:
     """Меню когда подписка неактивна."""
