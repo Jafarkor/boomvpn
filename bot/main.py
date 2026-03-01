@@ -16,7 +16,7 @@ from bot.config import (
 )
 from bot.database import create_pool, close_pool, create_tables
 from bot.handlers import register_all_handlers
-from bot.middlewares import ThrottlingMiddleware, BanCheckMiddleware, ChannelSubscriptionMiddleware
+from bot.middlewares import ThrottlingMiddleware, BanCheckMiddleware
 from bot.webhooks import register_yukassa_webhook, register_redirect_routes
 from bot.services.scheduler import setup_scheduler
 from bot.services.pasarguard import pasarguard
@@ -62,7 +62,6 @@ def build_app() -> web.Application:
     # ── Middleware ─────────────────────────────────────────────────────────────
     dp.update.middleware(ThrottlingMiddleware(redis=redis))
     dp.update.middleware(BanCheckMiddleware())
-    dp.update.middleware(ChannelSubscriptionMiddleware())
 
     # ── Хендлеры ──────────────────────────────────────────────────────────────
     register_all_handlers(dp)

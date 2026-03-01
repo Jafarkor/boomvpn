@@ -64,9 +64,11 @@ def menu_text(sub: dict | None, ref_link: str, ref_count: int) -> str:
         if isinstance(expires, str):
             expires = datetime.fromisoformat(expires)
         days_left = max(0, (expires - datetime.utcnow()).days)
+        auto_icon = '<tg-emoji emoji-id="5411197345968701560">✅</tg-emoji>' if sub.get("auto_renew") else '<tg-emoji emoji-id="5416076321442777828">❌</tg-emoji>'
         lines.append(
             f'<tg-emoji emoji-id="5350404270032166927">🏠</tg-emoji> <b>Подписка</b>\n'
-            f"└ <b>Осталось дней:</b> {days_left}"
+            f"├ <b>Осталось дней:</b> {days_left}\n"
+            f"╰ <b>Автопродление:</b> {auto_icon}"
         )
     else:
         lines.append(
@@ -79,8 +81,7 @@ def menu_text(sub: dict | None, ref_link: str, ref_count: int) -> str:
         f'\n<tg-emoji emoji-id="6001526766714227911">👥</tg-emoji> <b>Рефералы</b>\n'
         f"├ <b>Приглашено:</b> {ref_count}\n"
         f"├ <b>Бонус:</b> +{REFERRAL_BONUS_DAYS} дней за друга\n"
-        f"╰ Твоя ссылка (нажми, чтобы скопировать):\n"
-        f"<blockquote><code>{ref_link}</code></blockquote>"
+        f"╰ <code>{ref_link}</code>"
     )
 
     return "\n".join(lines)
