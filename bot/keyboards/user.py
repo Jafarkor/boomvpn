@@ -15,8 +15,8 @@ from bot.config import SUPPORT_USERNAME, CHANNEL_LINK
 def channel_sub_kb() -> InlineKeyboardMarkup:
     """Кнопки для подписки на канал и проверки подписки."""
     kb = InlineKeyboardBuilder()
-    kb.button(text="📢 Подписаться на канал", url=CHANNEL_LINK)
-    kb.button(text="✅ Я подписался — проверить", callback_data="check_channel_sub")
+    kb.button(text="Подписаться на канал", url=CHANNEL_LINK)
+    kb.button(text="✅ Проверить подписку", callback_data="check_channel_sub")
     kb.adjust(1)
     return kb.as_markup()
 

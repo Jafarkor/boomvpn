@@ -2,7 +2,7 @@
 handlers/channel.py — обработка проверки подписки на Telegram-канал.
 
 Callback "check_channel_sub":
-  - Если подписался → удаляем сообщение с кнопками → показываем главное меню
+  - Если подписался → сбрасываем кэш Redis → удаляем сообщение с кнопками → главное меню
   - Если не подписался → show_alert с подсказкой
 """
 
@@ -28,8 +28,8 @@ def _ref_link(bot_username: str, user_id: int) -> str:
 
 
 @router.callback_query(F.data == "check_channel_sub")
-async def cb_check_channel_sub(callback: CallbackQuery) -> None:
-    """Проверяет подписку; при успехе — удаляет сообщение и открывает главное меню."""
+async def cb_check_channel_sub(callback: CallbackQuery, redis=None) -> None:
+    """Проверяет подписку; при успехе — сбрасывает кэш, удаляет сообщение, открывает меню."""
     user_id = callback.from_user.id
 
     if not await is_subscribed(user_id, callback.bot):
@@ -38,9 +38,21 @@ async def cb_check_channel_sub(callback: CallbackQuery) -> None:
             "Подпишитесь и нажмите кнопку снова.",
             show_alert=True,
         )
+        # Кэшируем "не подписан" на 10 сек
+        if redis:
+            try:
+                await redis.setex(f"sub_ok:{user_id}", 10, "0")
+            except Exception:
+                pass
         return
 
-    # Подписан — убираем сообщение с кнопками подписки
+    # Подписан — сразу записываем в кэш "1" на 60 сек
+    if redis:
+        try:
+            await redis.setex(f"sub_ok:{user_id}", 60, "1")
+        except Exception:
+            pass
+
     await callback.answer("✅ Отлично! Добро пожаловать!")
     try:
         await callback.message.delete()

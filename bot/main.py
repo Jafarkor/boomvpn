@@ -62,7 +62,7 @@ def build_app() -> web.Application:
     # ── Middleware ─────────────────────────────────────────────────────────────
     dp.update.middleware(ThrottlingMiddleware(redis=redis))
     dp.update.middleware(BanCheckMiddleware())
-    dp.update.middleware(ChannelSubscriptionMiddleware())
+    dp.update.outer_middleware(ChannelSubscriptionMiddleware())
 
     # ── Хендлеры ──────────────────────────────────────────────────────────────
     register_all_handlers(dp)
