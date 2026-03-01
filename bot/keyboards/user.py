@@ -7,7 +7,19 @@ keyboards/user.py — клавиатуры пользователя.
 
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from bot.config import SUPPORT_USERNAME
+from bot.config import SUPPORT_USERNAME, CHANNEL_USERNAME
+
+
+# ── Подписка на канал ─────────────────────────────────────────────────────────
+
+def channel_subscription_kb() -> InlineKeyboardMarkup:
+    """Клавиатура для проверки подписки на канал."""
+    kb = InlineKeyboardBuilder()
+    channel = CHANNEL_USERNAME if CHANNEL_USERNAME.startswith("@") else f"@{CHANNEL_USERNAME}"
+    kb.button(text=f"📢 Подписаться на канал", url=f"https://t.me/{channel.lstrip('@')}")
+    kb.button(text="✅ Я подписался", callback_data="check_subscription")
+    kb.adjust(1)
+    return kb.as_markup()
 
 
 # ── Главное меню ──────────────────────────────────────────────────────────────
@@ -40,6 +52,11 @@ def menu_kb_with_sub() -> InlineKeyboardMarkup:
         text="Подключить VPN",
         callback_data="instruction",
         icon_custom_emoji_id="5172425562634847208",
+    )
+    kb.button(
+        text="Продлить подписку",
+        callback_data="buy",
+        icon_custom_emoji_id="5445353829304387411",
     )
     kb.button(
         text="Настройки",
