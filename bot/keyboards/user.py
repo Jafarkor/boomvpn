@@ -90,7 +90,8 @@ def pay_kb(payment_url: str) -> InlineKeyboardMarkup:
     kb.button(text="Проверить оплату",
               callback_data="check_payment",
               icon_custom_emoji_id="5411197345968701560")
-    kb.button(text="✕ Отмена",              callback_data="menu")
+    kb.button(text="← Назад",
+              callback_data="menu")
     kb.adjust(1)
     return kb.as_markup()
 
