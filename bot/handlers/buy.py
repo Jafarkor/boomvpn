@@ -2,6 +2,7 @@
 handlers/buy.py — оформление и проверка оплаты.
 """
 
+import asyncio
 import logging
 
 from aiogram import Router, F
@@ -22,13 +23,19 @@ router = Router()
 # user_id → yukassa_payment_id
 _pending: dict[int, str] = {}
 
+# user_id → идёт проверка платежа (защита от параллельных нажатий)
+_in_progress: set[int] = set()
+
 
 async def _process_check_payment(callback: CallbackQuery, user_id: int, payment_id: str) -> None:
     """
     Общая логика проверки статуса платежа ЮКассы.
     """
     try:
-        yk_payment = YkPayment.find_one(payment_id)
+        # YkPayment.find_one — синхронный HTTP-запрос; запускаем в thread pool,
+        # чтобы не блокировать asyncio event loop.
+        loop = asyncio.get_event_loop()
+        yk_payment = await loop.run_in_executor(None, YkPayment.find_one, payment_id)
     except Exception as exc:
         logger.error("YK payment check error: %s", exc)
         await edit_photo_page(
@@ -117,10 +124,19 @@ async def cb_buy(callback: CallbackQuery) -> None:
 @router.callback_query(F.data == "check_payment")
 async def cb_check_payment(callback: CallbackQuery) -> None:
     user_id = callback.from_user.id
-    payment_id = _pending.get(user_id)
 
+    # Защита от повторных нажатий: пока идёт проверка — игнорируем дубли.
+    if user_id in _in_progress:
+        await callback.answer("Уже проверяем, подождите...", show_alert=True)
+        return
+
+    payment_id = _pending.get(user_id)
     if not payment_id:
         await callback.answer("Нет активного платежа. Начни заново.", show_alert=True)
         return
 
-    await _process_check_payment(callback, user_id, payment_id)
+    _in_progress.add(user_id)
+    try:
+        await _process_check_payment(callback, user_id, payment_id)
+    finally:
+        _in_progress.discard(user_id)
