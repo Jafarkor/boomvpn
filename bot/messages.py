@@ -166,8 +166,7 @@ def reminder_expiring_soon_text() -> str:
     return (
         f"<tg-emoji emoji-id=\"5217604963571621845\">📅</tg-emoji> <b>Твоя подписка истекает завтра</b>\n\n"
         f"Осталось меньше суток. Продли сейчас — и VPN продолжит работать без перебоев.\n\n"
-        f"├ Срок: <b>{PLAN_DAYS} дней</b>\n"
-        f"╰ Цена: <b>{PLAN_PRICE} ₽</b>"
+        f"<b>Всего {PLAN_PRICE} ₽ в месяц</b>"
     )
 
 
@@ -176,8 +175,7 @@ def reminder_just_expired_text() -> str:
     return (
         f"<tg-emoji emoji-id=\"5416076321442777828\">❌</tg-emoji> <b>Твоя подписка закончилась</b>\n\n"
         f"VPN больше не работает. Продли подписку — подключение восстановится мгновенно.\n\n"
-        f"├ Срок: <b>{PLAN_DAYS} дней</b>\n"
-        f"╰ Цена: <b>{PLAN_PRICE} ₽</b>"
+        f"<b>Всего {PLAN_PRICE} ₽ в месяц</b>"
     )
 
 
@@ -186,8 +184,7 @@ def reminder_week_1_text() -> str:
     return (
         f"<tg-emoji emoji-id=\"5372917041193828849\">🚀</tg-emoji> <b>Неделя без VPN — возвращайся!</b>\n\n"
         f"Твоя подписка ждёт — одна кнопка, и всё снова работает.\n\n"
-        f"├ Срок: <b>{PLAN_DAYS} дней</b>\n"
-        f"╰ Цена: <b>{PLAN_PRICE} ₽</b>"
+        f"<b>Всего {PLAN_PRICE} ₽ в месяц</b>"
     )
 
 
@@ -196,8 +193,7 @@ def reminder_week_2_text() -> str:
     return (
         f"<tg-emoji emoji-id=\"5193085063998224234\">🎁</tg-emoji> <b>Последнее напоминание</b>\n\n"
         f"Прошло две недели. Если понадобится — мы всегда здесь. Продли подписку в любой момент.\n\n"
-        f"├ Срок: <b>{PLAN_DAYS} дней</b>\n"
-        f"╰ Цена: <b>{PLAN_PRICE} ₽</b>"
+        f"<b>Всего {PLAN_PRICE} ₽ в месяц</b>"
     )
 
 
