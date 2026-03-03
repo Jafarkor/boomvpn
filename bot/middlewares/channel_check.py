@@ -106,7 +106,7 @@ class ChannelSubscriptionMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         # ── Не подписан — блокируем и предлагаем подписаться ─────────────────
-        text = "<tg-emoji emoji-id=\"5429309601013056582\">💙</tg-emoji> Для доступа к боту необходимо подписаться на наш официальный канал:"
+        text = "<tg-emoji emoji-id=\"5429309601013056582\">💙</tg-emoji> Для доступа к боту необходимо подписаться на канал:"
         try:
             if event.callback_query:
                 await event.callback_query.answer()

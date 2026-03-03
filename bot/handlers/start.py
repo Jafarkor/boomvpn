@@ -42,7 +42,7 @@ async def cmd_start(message: Message) -> None:
         # Возвращающийся пользователь — проверяем подписку на канал
         if not await is_subscribed(tg_user.id, message.bot):
             await message.answer(
-                "<tg-emoji emoji-id=\"5429309601013056582\">💙</tg-emoji> Для доступа к боту необходимо подписаться на наш официальный канал:",
+                "<tg-emoji emoji-id=\"5429309601013056582\">💙</tg-emoji> Для доступа к боту необходимо подписаться на канал:",
                 reply_markup=channel_sub_kb(),
             )
             return
@@ -54,7 +54,7 @@ async def cmd_start(message: Message) -> None:
         # Гонка — пользователь уже есть
         if not await is_subscribed(tg_user.id, message.bot):
             await message.answer(
-                "<tg-emoji emoji-id=\"5429309601013056582\">💙</tg-emoji> Для доступа к боту необходимо подписаться на наш официальный канал:",
+                "<tg-emoji emoji-id=\"5429309601013056582\">💙</tg-emoji> Для доступа к боту необходимо подписаться на канал:",
                 reply_markup=channel_sub_kb(),
             )
             return
