@@ -80,6 +80,16 @@ def settings_kb(auto_renew: bool) -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
+def reminder_kb() -> InlineKeyboardMarkup:
+    """Кнопка под напоминаниями о покупке подписки."""
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Продлить подписку",
+              callback_data="buy",
+              icon_custom_emoji_id="5172425562634847208",)
+    kb.adjust(1)
+    return kb.as_markup()
+
+
 # ── Покупка ───────────────────────────────────────────────────────────────────
 
 def pay_kb(payment_url: str) -> InlineKeyboardMarkup:

@@ -110,6 +110,61 @@ async def toggle_auto_renew(subscription_id: int, enabled: bool) -> None:
         )
 
 
+async def get_subscriptions_expiring_soon() -> list[dict]:
+    """
+    Подписки, истекающие через 23–24 часа, у которых автопродление невозможно:
+      - auto_renew = FALSE, или
+      - нет сохранённого метода оплаты (ни разу не платили через ЮKassa).
+    Используется для напоминания «за день до окончания».
+    """
+    now = datetime.utcnow()
+    window_start = now + timedelta(hours=23)
+    window_end   = now + timedelta(hours=24)
+    async with get_pool().acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT * FROM subscriptions
+            WHERE is_active = TRUE
+              AND expires_at > $1
+              AND expires_at <= $2
+              AND (auto_renew = FALSE OR yukassa_payment_method_id IS NULL)
+        """, window_start, window_end)
+    return [dict(r) for r in rows]
+
+
+async def get_subscriptions_just_expired() -> list[dict]:
+    """
+    Подписки, у которых expires_at попал в последний 1 час (только что истекли).
+    Используется для уведомления «подписка закончилась».
+    """
+    now = datetime.utcnow()
+    window_start = now - timedelta(hours=1)
+    async with get_pool().acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT * FROM subscriptions
+            WHERE expires_at > $1
+              AND expires_at <= $2
+        """, window_start, now)
+    return [dict(r) for r in rows]
+
+
+async def get_subscriptions_expired_weeks_ago(weeks: int) -> list[dict]:
+    """
+    Неактивные подписки, у которых expires_at был ровно `weeks` недель назад
+    (окно ±1 час). Используется для еженедельных напоминаний.
+    """
+    now = datetime.utcnow()
+    target       = now - timedelta(weeks=weeks)
+    window_start = target - timedelta(hours=1)
+    async with get_pool().acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT * FROM subscriptions
+            WHERE is_active = FALSE
+              AND expires_at > $1
+              AND expires_at <= $2
+        """, window_start, target)
+    return [dict(r) for r in rows]
+
+
 async def get_expiring_subscriptions(within_hours: int = 24) -> list[dict]:
     """
     Возвращает активные подписки с auto_renew=TRUE и сохранённым методом оплаты,
