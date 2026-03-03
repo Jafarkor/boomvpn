@@ -16,7 +16,7 @@ def channel_sub_kb() -> InlineKeyboardMarkup:
     """Кнопки для подписки на канал и проверки подписки."""
     kb = InlineKeyboardBuilder()
     kb.button(text="Подписаться", url=CHANNEL_LINK)
-    kb.button(text="✅ Подписался", callback_data="check_channel_sub")
+    kb.button(text="✅ Проверить", callback_data="check_channel_sub")
     kb.adjust(1)
     return kb.as_markup()
 
