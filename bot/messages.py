@@ -79,7 +79,7 @@ def menu_text(sub: dict | None, ref_link: str, ref_count: int) -> str:
     lines.append(
         f'\n<tg-emoji emoji-id="6001526766714227911">👥</tg-emoji> <b>Друзья</b>\n'
         f"├ <b>Приглашено:</b> {ref_count}\n"
-        f"╰ <b>+{REFERRAL_BONUS_DAYS} дней за друга</b>\n\n"
+        f"╰ <b>+{REFERRAL_BONUS_DAYS} дня за друга</b>\n\n"
         f"Ссылка для друзей (нажми, чтобы скопировать):"
         f"<blockquote><code>{ref_link}</code></blockquote>"
     )
@@ -155,7 +155,7 @@ def payment_fail_text() -> str:
 def referral_reward_text(days: int) -> str:
     return (
         f"<tg-emoji emoji-id=\"5436040291507247633\">🎉</tg-emoji> <b>Твой друг зарегистрировался!</b>\n\n"
-        f"Тебе начислено <b>+{days} дней</b> подписки."
+        f"Тебе начислено <b>+{days} дня</b> подписки."
     )
 
 
