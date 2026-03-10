@@ -267,6 +267,11 @@ thead th {
   border-bottom: 1px solid var(--b); white-space: nowrap;
   background: var(--s2);
 }
+thead th.sh {
+  cursor: pointer; user-select: none;
+  transition: color var(--trans);
+}
+thead th.sh:hover { color: var(--txt2); }
 td {
   padding: 11px 14px; font-size: 12.5px;
   border-bottom: 1px solid rgba(30,33,52,.7); vertical-align: middle;
@@ -760,6 +765,7 @@ const uF = {
   page:1, search:'', pendingSearch:'',
   sub_status:'', banned:'', reg_from:'', reg_to:'', sub_from:'', sub_to:'',
   showFilters: false,
+  sort: 'registered_at', sort_dir: 'desc',
 };
 
 async function renderUsers() {
@@ -768,6 +774,7 @@ async function renderUsers() {
     page:uF.page, per_page:25,
     search:uF.search, sub_status:uF.sub_status, banned:uF.banned,
     reg_from:uF.reg_from, reg_to:uF.reg_to, sub_from:uF.sub_from, sub_to:uF.sub_to,
+    sort:uF.sort, sort_dir:uF.sort_dir,
   });
   const d  = await api('/users?' + p);
   const tp = Math.ceil(d.total / 25);
@@ -798,8 +805,11 @@ async function renderUsers() {
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Пользователь</th><th>Статус</th><th>Подписка</th>
-            <th>Потрачено</th><th>Регистрация</th><th></th>
+            <th>Пользователь</th><th>Статус</th>
+            <th class="sh" onclick="setSort('expires_at')">Подписка ${sortArrow('expires_at')}</th>
+            <th class="sh" onclick="setSort('total_spent')">Потрачено ${sortArrow('total_spent')}</th>
+            <th class="sh" onclick="setSort('registered_at')">Регистрация ${sortArrow('registered_at')}</th>
+            <th></th>
           </tr></thead>
           <tbody>
             ${d.users.map(userRow).join('') ||
@@ -904,9 +914,22 @@ function _svg(d, s = '12') {
     refresh: `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
     x:       `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
     arrow:   `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
-    warn:    `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+    msg:     `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
   };
   return icons[d] || '';
+}
+
+function setSort(col) {
+  if (uF.sort === col) uF.sort_dir = uF.sort_dir === 'asc' ? 'desc' : 'asc';
+  else { uF.sort = col; uF.sort_dir = 'desc'; }
+  uF.page = 1;
+  renderUsers();
+}
+function sortArrow(col) {
+  if (uF.sort !== col) return '<span style="opacity:.25;font-size:9px">⇅</span>';
+  return uF.sort_dir === 'asc'
+    ? '<span style="color:var(--acc);font-size:9px">↑</span>'
+    : '<span style="color:var(--acc);font-size:9px">↓</span>';
 }
 
 function userRow(u) {
@@ -931,6 +954,7 @@ function userRow(u) {
     <td>
       <div class="acts">
         ${subActions}
+        <button class="btn btn-d btn-icon btn-sm" onclick="confirmMsg(${u.user_id},'${esc(u.first_name)}')" title="Написать">${_svg('msg')}</button>
         <button class="btn btn-d btn-icon btn-sm" onclick="showUser(${u.user_id})" title="Подробнее">${_svg('more')}</button>
       </div>
     </td>
@@ -996,6 +1020,7 @@ async function showUser(uid) {
       <tbody>${payRows}</tbody>
     </table>
     <div class="mo-act">
+      <button class="btn btn-d" style="border-color:rgba(99,102,241,.25)" onclick="closeMo();confirmMsg(${u.user_id},'${esc(u.first_name)}')">${_svg('msg','13')} Написать</button>
       ${!hasActive?`<button class="btn btn-grn" onclick="closeMo();confirmGrant(${u.user_id},'${esc(u.first_name)}')">${_svg('gift','13')} Выдать</button>`:''}
       ${hasActive ?`<button class="btn btn-acc" onclick="closeMo();confirmExtend(${u.user_id},'${esc(u.first_name)}')">${_svg('plus','13')} Продлить</button>`:''}
       ${hasActive ?`<button class="btn btn-d" style="border-color:rgba(99,102,241,.25)" onclick="closeMo();confirmAdjust(${u.user_id},'${esc(u.first_name)}','${u.expires_at||''}')">${_svg('cal','13')} Изменить срок</button>`:''}
@@ -1278,6 +1303,35 @@ async function doDelete(uid) {
   const d = await api('/users/'+uid, {method:'DELETE', body:{delete_panel:del}});
   closeMo();
   d.error ? toast(d.error, 'err') : (toast('Пользователь удалён'), renderUsers());
+}
+
+// ── Send message ──────────────────────────────────────
+
+function confirmMsg(uid, name) {
+  openMo(`
+    <div class="mo-handle"></div>
+    <div class="mo-head">
+      <div>
+        <div class="mo-title">${_svg('msg','16')} Написать пользователю</div>
+        <div class="mo-sub">${esc(name)} · ID ${uid}</div>
+      </div>
+      <button class="mo-x" onclick="closeMo()">${_svg('x','13')}</button>
+    </div>
+    <p style="font-size:12px;color:var(--txt3);margin-bottom:10px">Поддерживается HTML: &lt;b&gt;, &lt;i&gt;, &lt;code&gt;, &lt;a href&gt;</p>
+    <textarea id="msg-ta" class="bcast-ta" style="min-height:100px" placeholder="Текст сообщения..."></textarea>
+    <div class="mo-btns" style="margin-top:14px">
+      <button class="btn btn-d btn-lg" onclick="closeMo()">Отмена</button>
+      <button class="btn btn-primary btn-lg" id="cb" onclick="doSendMsg(${uid})">${_svg('msg','14')} Отправить</button>
+    </div>`);
+}
+
+async function doSendMsg(uid) {
+  const text = $('msg-ta')?.value?.trim();
+  if (!text) { toast('Введите текст', 'err'); return; }
+  btnLoad('cb');
+  const d = await api('/users/'+uid+'/message', {method:'POST', body:{text}});
+  closeMo();
+  d.ok ? toast('Сообщение отправлено ✓') : toast(d.error || 'Ошибка', 'err');
 }
 
 // ══════════════════════════════════════════

@@ -45,6 +45,12 @@ def _parse_date(s: str) -> date | None:
 
 # ── List ───────────────────────────────────────────────────────────
 
+_VALID_SORTS = {
+    "registered_at": "u.registered_at",
+    "total_spent":   "COALESCE(p.total_spent, 0)",
+    "expires_at":    "s.expires_at",
+}
+
 @bp.get("/users")
 def list_users():
     page       = max(1, int(request.args.get("page", 1)))
@@ -56,7 +62,12 @@ def list_users():
     reg_to     = _parse_date(request.args.get("reg_to", ""))
     sub_from   = _parse_date(request.args.get("sub_from", ""))
     sub_to     = _parse_date(request.args.get("sub_to", ""))
+    sort       = request.args.get("sort", "registered_at")
+    sort_dir   = "ASC" if request.args.get("sort_dir", "desc").lower() == "asc" else "DESC"
     offset     = (page - 1) * per_page
+
+    sort_col   = _VALID_SORTS.get(sort, "u.registered_at")
+    order_sql  = f"ORDER BY {sort_col} {sort_dir} NULLS LAST"
 
     async def _():
         c = await conn()
@@ -66,9 +77,12 @@ def list_users():
             )
             where = f"WHERE {' AND '.join(filters)}" if filters else ""
             n     = len(params)
-            total = await c.fetchval(f"SELECT COUNT(*) FROM users u {where}", *params)
+            # Fix: wrap _BASE so WHERE can reference lateral-join aliases (s, p)
+            total = await c.fetchval(
+                f"SELECT COUNT(*) FROM ({_BASE} {where}) _cnt", *params
+            )
             data  = await c.fetch(
-                f"{_BASE} {where} ORDER BY u.registered_at DESC LIMIT ${n+1} OFFSET ${n+2}",
+                f"{_BASE} {where} {order_sql} LIMIT ${n+1} OFFSET ${n+2}",
                 *params, per_page, offset,
             )
         finally:
@@ -365,6 +379,37 @@ def disable_sub(uid):
                 pass
 
         return {"ok": True}
+
+    try:
+        return jsonify(run(_()))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ── Send message to single user ────────────────────────
+import aiohttp as _aiohttp
+
+@bp.post("/users/<int:uid>/message")
+def send_message(uid):
+    text = (request.json or {}).get("text", "").strip()
+    if not text:
+        return jsonify({"error": "Пустой текст"}), 400
+
+    bot_token = os.environ.get("BOT_TOKEN", "")
+    if not bot_token:
+        return jsonify({"error": "BOT_TOKEN не настроен"}), 500
+
+    async def _():
+        async with _aiohttp.ClientSession() as http:
+            async with http.post(
+                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                json={"chat_id": uid, "text": text, "parse_mode": "HTML"},
+                timeout=_aiohttp.ClientTimeout(total=10),
+            ) as r:
+                body = await r.json()
+                if r.status == 200:
+                    return {"ok": True}
+                return {"error": body.get("description", "Ошибка Telegram")}
 
     try:
         return jsonify(run(_()))
