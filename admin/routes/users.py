@@ -195,24 +195,68 @@ def ban_user(uid):
 @bp.post("/users/<int:uid>/sub/grant")
 def grant_sub(uid):
     async def _():
-        pg_user      = await pg.create_user(uid)
-        panel_uname  = pg_user["username"]
-        sub_url = pg_user.get("subscription_url") or ""
-        if sub_url.startswith("/"):
-            sub_url = f"{pg.PASARGUARD_URL.rstrip('/')}{sub_url}"
-        expires_at   = datetime.utcnow() + timedelta(days=PLAN_DAYS)
-
         c = await conn()
         try:
-            sub_id = await c.fetchval("""
-                INSERT INTO subscriptions
-                    (user_id, panel_username, expires_at, is_active, auto_renew, subscription_url)
-                VALUES ($1, $2, $3, TRUE, TRUE, $4) RETURNING id
-            """, uid, panel_uname, expires_at, sub_url or None)
+            # Ищем любую подписку (активную или нет) — для переиспользования
+            any_sub = await c.fetchrow(
+                "SELECT id, panel_username, subscription_url, is_active "
+                "FROM subscriptions WHERE user_id=$1 ORDER BY id DESC LIMIT 1",
+                uid,
+            )
         finally:
             await c.close()
 
-        return {"ok": True, "sub_id": sub_id, "panel_username": panel_uname, "subscription_url": sub_url}
+        if any_sub:
+            # Пользователь уже существует — продлеваем / реактивируем
+            # panel_username берём из БД, но если там вдруг старое значение — используем tg_{uid}
+            panel_uname = any_sub["panel_username"] or pg.panel_username(uid)
+            await pg.extend_user(panel_uname, PLAN_DAYS)
+
+            # Получаем свежий subscription_url из PasarGuard (на случай если в БД пусто)
+            pg_user = await pg.get_user(panel_uname)
+            sub_url = any_sub["subscription_url"] or ""
+            if not sub_url and pg_user:
+                sub_url = pg_user.get("subscription_url") or ""
+                if sub_url.startswith("/"):
+                    sub_url = f"{pg.PASARGUARD_URL.rstrip('/')}{sub_url}"
+
+            expires_at = datetime.utcnow() + timedelta(days=PLAN_DAYS)
+            c = await conn()
+            try:
+                await c.execute("""
+                    UPDATE subscriptions
+                    SET expires_at = GREATEST(expires_at, NOW()) + $1::interval,
+                        is_active  = TRUE,
+                        subscription_url = COALESCE(NULLIF(subscription_url, ''), $2)
+                    WHERE id = $3
+                """, timedelta(days=PLAN_DAYS), sub_url or None, any_sub["id"])
+            finally:
+                await c.close()
+
+            return {"ok": True, "sub_id": any_sub["id"], "panel_username": panel_uname,
+                    "subscription_url": sub_url, "action": "extended"}
+
+        else:
+            # Первое начисление — создаём с нуля
+            pg_user = await pg.ensure_user(uid)
+            panel_uname = pg_user["username"]
+            sub_url = pg_user.get("subscription_url") or ""
+            if sub_url.startswith("/"):
+                sub_url = f"{pg.PASARGUARD_URL.rstrip('/')}{sub_url}"
+            expires_at = datetime.utcnow() + timedelta(days=PLAN_DAYS)
+
+            c = await conn()
+            try:
+                sub_id = await c.fetchval("""
+                    INSERT INTO subscriptions
+                        (user_id, panel_username, expires_at, is_active, auto_renew, subscription_url)
+                    VALUES ($1, $2, $3, TRUE, FALSE, $4) RETURNING id
+                """, uid, panel_uname, expires_at, sub_url or None)
+            finally:
+                await c.close()
+
+            return {"ok": True, "sub_id": sub_id, "panel_username": panel_uname,
+                    "subscription_url": sub_url, "action": "created"}
 
     try:
         return jsonify(run(_()))

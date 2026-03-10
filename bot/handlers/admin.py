@@ -16,6 +16,7 @@ from bot.config import ADMIN_IDS
 from bot.database.users import get_all_users, count_users, set_ban, get_user
 from bot.database.subscriptions import get_active_subscription
 from bot.keyboards.admin import admin_menu_kb, confirm_broadcast_kb, admin_back_kb
+from bot.services.subscription import create_paid_subscription
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -25,6 +26,7 @@ class AdminFSM(StatesGroup):
     broadcast_text = State()
     ban_id = State()
     unban_id = State()
+    grant_id = State()
 
 
 def _is_admin(user_id: int) -> bool:
@@ -184,3 +186,53 @@ async def cb_adm_cancel(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await callback.message.edit_text("🛠 <b>Панель администратора</b>", reply_markup=admin_menu_kb())
     await callback.answer()
+
+
+# ── Начисление подписки ───────────────────────────────────────────────────────
+
+@router.callback_query(F.data == "adm_grant")
+async def cb_adm_grant(callback: CallbackQuery, state: FSMContext) -> None:
+    if not _is_admin(callback.from_user.id):
+        return
+    await state.set_state(AdminFSM.grant_id)
+    await callback.message.edit_text(
+        "🎁 Введи <b>user_id</b> пользователя, которому начислить подписку:\n\n"
+        "<i>Если подписка истекла — она будет реактивирована (та же ссылка VPN).\n"
+        "Если подписки не было — создаётся новая.</i>",
+        reply_markup=admin_back_kb(),
+    )
+    await callback.answer()
+
+
+@router.message(AdminFSM.grant_id)
+async def fsm_grant_id(message: Message, state: FSMContext) -> None:
+    if not _is_admin(message.from_user.id):
+        return
+    try:
+        uid = int(message.text.strip())
+    except ValueError:
+        await message.answer("Введи числовой user_id.")
+        return
+
+    await state.clear()
+    try:
+        url = await create_paid_subscription(uid)
+        # Уведомляем пользователя
+        try:
+            await message.bot.send_message(
+                uid,
+                "✅ Вам начислена подписка! Ваша ссылка VPN по-прежнему активна.",
+            )
+        except Exception:
+            pass
+        await message.answer(
+            f"✅ Подписка начислена пользователю <code>{uid}</code>.\n"
+            f"Ссылка: <code>{url}</code>",
+            reply_markup=admin_back_kb(),
+        )
+    except Exception as exc:
+        logger.error("Grant subscription failed for user %s: %s", uid, exc)
+        await message.answer(
+            f"❌ Ошибка при начислении подписки для <code>{uid}</code>: {exc}",
+            reply_markup=admin_back_kb(),
+        )

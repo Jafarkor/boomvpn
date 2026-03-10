@@ -15,6 +15,8 @@ from bot.config import REFERRAL_BONUS_DAYS
 from bot.database.referrals import record_referral, mark_rewarded
 from bot.database.subscriptions import (
     get_active_subscription,
+    get_any_subscription,
+    reactivate_subscription,
     create_subscription,
     extend_subscription,
 )
@@ -31,14 +33,11 @@ def _panel_username(user_id: int) -> str:
 
 async def _grant_subscription(referrer_id: int) -> None:
     """Выдаёт или продлевает реальную подписку рефереру в PasarGuard и DB."""
-    # ВСЕГДА используем _panel_username для консистентности —
-    # НЕ берём panel_username из DB, т.к. там может быть устаревшее значение.
     username = _panel_username(referrer_id)
-    sub = await get_active_subscription(referrer_id)
+    active_sub = await get_active_subscription(referrer_id)
 
-    if sub:
-        # ── Продление существующей подписки ───────────────────────────────────
-        # 1. PasarGuard
+    if active_sub:
+        # ── Продление активной подписки ───────────────────────────────────────
         try:
             await pasarguard.extend_user(username, REFERRAL_BONUS_DAYS)
         except Exception as pg_exc:
@@ -46,37 +45,47 @@ async def _grant_subscription(referrer_id: int) -> None:
                 "PasarGuard extend_user FAILED for referrer %s (panel: %s): %s",
                 referrer_id, username, pg_exc,
             )
-
-        # 2. DB
-        await extend_subscription(sub["id"], days=REFERRAL_BONUS_DAYS)
+        await extend_subscription(active_sub["id"], days=REFERRAL_BONUS_DAYS)
         logger.info(
             "Referral: extended sub %s by %d days for user %s",
-            sub["id"], REFERRAL_BONUS_DAYS, referrer_id,
+            active_sub["id"], REFERRAL_BONUS_DAYS, referrer_id,
         )
     else:
-        # ── Новая подписка рефереру ────────────────────────────────────────────
-        # 1. PasarGuard (GET-first: создаём или продлеваем)
-        await pasarguard.ensure_user(username, days=REFERRAL_BONUS_DAYS)
-
-        # Получаем subscription_url для сохранения в DB
-        try:
-            url = await pasarguard.get_subscription_url(username)
-        except Exception:
-            url = None
-
-        # 2. DB
-        await create_subscription(
-            user_id=referrer_id,
-            panel_username=username,
-            payment_method_id=None,
-            days=REFERRAL_BONUS_DAYS,
-            auto_renew=False,
-            subscription_url=url,
-        )
-        logger.info(
-            "Referral: created %d-day subscription for user %s",
-            REFERRAL_BONUS_DAYS, referrer_id,
-        )
+        any_sub = await get_any_subscription(referrer_id)
+        if any_sub:
+            # ── Реактивация истёкшей подписки — переиспользуем существующий аккаунт ──
+            # PasarGuard-пользователь уже создан, ссылка у пользователя остаётся прежней.
+            try:
+                await pasarguard.extend_user(username, REFERRAL_BONUS_DAYS)
+            except Exception as pg_exc:
+                logger.error(
+                    "PasarGuard extend_user FAILED during referral reactivation for user %s: %s",
+                    referrer_id, pg_exc,
+                )
+            await reactivate_subscription(any_sub["id"], days=REFERRAL_BONUS_DAYS)
+            logger.info(
+                "Referral: reactivated sub %s by %d days for user %s",
+                any_sub["id"], REFERRAL_BONUS_DAYS, referrer_id,
+            )
+        else:
+            # ── Первая выдача — создаём с нуля ────────────────────────────────
+            await pasarguard.ensure_user(username, days=REFERRAL_BONUS_DAYS)
+            try:
+                url = await pasarguard.get_subscription_url(username)
+            except Exception:
+                url = None
+            await create_subscription(
+                user_id=referrer_id,
+                panel_username=username,
+                payment_method_id=None,
+                days=REFERRAL_BONUS_DAYS,
+                auto_renew=False,
+                subscription_url=url,
+            )
+            logger.info(
+                "Referral: created %d-day subscription for user %s",
+                REFERRAL_BONUS_DAYS, referrer_id,
+            )
 
 
 async def handle_referral(referrer_id: int, referred_id: int, bot: Bot) -> None:

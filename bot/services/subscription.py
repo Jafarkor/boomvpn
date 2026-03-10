@@ -43,24 +43,44 @@ def _panel_username(user_id: int) -> str:
 async def create_gift_subscription(user_id: int) -> str:
     """
     Создаёт подарочную подписку на GIFT_DAYS дней.
+    Если у пользователя уже есть (в т.ч. истёкшая) подписка — реактивирует/продлевает её,
+    не создавая новый PasarGuard-аккаунт. Ссылка VPN у пользователя остаётся прежней.
     Возвращает ссылку подписки.
     """
     username = _panel_username(user_id)
+    active_sub = await get_active_subscription(user_id)
 
-    # 1. PasarGuard (сначала!)
-    await pasarguard.ensure_user(username, days=GIFT_DAYS)
-    url = await pasarguard.get_subscription_url(username)
+    if active_sub:
+        # Продление активной подписки
+        try:
+            await pasarguard.extend_user(username, GIFT_DAYS)
+        except Exception as pg_exc:
+            logger.error("PasarGuard extend FAILED for gift (user %s): %s", user_id, pg_exc)
+        await extend_subscription(active_sub["id"], days=GIFT_DAYS)
+        url = active_sub.get("subscription_url") or await pasarguard.get_subscription_url(username)
+    else:
+        any_sub = await get_any_subscription(user_id)
+        if any_sub:
+            # Реактивация истёкшей — переиспользуем существующий PasarGuard-аккаунт
+            try:
+                await pasarguard.extend_user(username, GIFT_DAYS)
+            except Exception as pg_exc:
+                logger.error("PasarGuard extend FAILED for gift reactivation (user %s): %s", user_id, pg_exc)
+            await reactivate_subscription(any_sub["id"], days=GIFT_DAYS)
+            url = any_sub.get("subscription_url") or await pasarguard.get_subscription_url(username)
+        else:
+            # Первая выдача — создаём с нуля
+            await pasarguard.ensure_user(username, days=GIFT_DAYS)
+            url = await pasarguard.get_subscription_url(username)
+            await create_subscription(
+                user_id=user_id,
+                panel_username=username,
+                days=GIFT_DAYS,
+                auto_renew=False,
+                subscription_url=url,
+            )
 
-    # 2. DB
-    await create_subscription(
-        user_id=user_id,
-        panel_username=username,
-        days=GIFT_DAYS,
-        auto_renew=False,
-        subscription_url=url,
-    )
-
-    logger.info("Gift subscription created for user %s (%d days)", user_id, GIFT_DAYS)
+    logger.info("Gift subscription processed for user %s (%d days)", user_id, GIFT_DAYS)
     return url
 
 
