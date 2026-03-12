@@ -1,19 +1,26 @@
 """
-handlers/buy.py — оформление и проверка оплаты.
+handlers/buy.py — оформление и фоновая проверка оплаты.
 
-ИСПРАВЛЕНИЯ:
-1. _process_check_payment теперь делает несколько попыток (retry) с паузой,
-   т.к. ЮKassa СБП может возвращать "pending" ещё несколько секунд после
-   реальной оплаты.
-2. Дополнительно проверяется поле paid=True как ранний признак успеха.
-3. _pending сохраняется в БД (get_pending_payment/set_pending_payment),
-   чтобы не теряться при перезапуске бота.
+Логика кнопки "Проверить оплату":
+  1. Сообщение с кнопками удаляется.
+  2. Пользователю отправляется: "Подписка активируется сама, ждите 5–10 минут."
+  3. В фоне запускается asyncio-задача, которая проверяет статус платежа
+     раз в 20 секунд на протяжении до 15 минут.
+  4. Как только ЮKassa вернёт succeeded/paid=True — подписка активируется
+     и пользователь получает уведомление.
+  5. Если за 15 минут оплата не подтвердилась — сообщение об ошибке.
+
+Защиты:
+  - Нельзя запустить две проверки одновременно (_polling_tasks).
+  - Нажатие "← Назад" → "Купить подписку" не создаёт новый платёж,
+    пока есть незавершённый.
+  - payment_id хранится в БД (не в памяти) — переживает рестарт бота.
 """
 
 import asyncio
 import logging
 
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.types import CallbackQuery
 from yookassa import Payment as YkPayment
 
@@ -23,7 +30,6 @@ from bot.database.payments import (
     save_pending_payment_for_user,
     clear_pending_payment_for_user,
 )
-from bot.database.subscriptions import get_active_subscription, save_payment_method
 from bot.keyboards.user import pay_kb, back_to_menu_kb
 from bot.messages import buy_text, payment_success_text, payment_fail_text
 from bot.services.payment import create_payment_link
@@ -33,15 +39,15 @@ from bot.utils.media import edit_photo_page
 logger = logging.getLogger(__name__)
 router = Router()
 
-# user_id → идёт проверка платежа (защита от параллельных нажатий)
-# Это in-memory, но только для защиты от двойных кликов — не критично при рестарте.
-_in_progress: set[int] = set()
+# Параметры фонового поллинга
+POLL_INTERVAL_SEC = 20        # интервал между запросами к ЮKassa
+POLL_TIMEOUT_SEC  = 15 * 60  # максимальное время ожидания (15 минут)
 
-# Параметры retry при проверке статуса СБП-платежа.
-# ЮKassa может задержать обновление статуса на несколько секунд после оплаты.
-RETRY_ATTEMPTS = 5       # количество попыток
-RETRY_DELAY_SEC = 3.0    # пауза между попытками (секунды)
+# user_id → asyncio.Task (защита от двух параллельных задач на одного юзера)
+_polling_tasks: dict[int, asyncio.Task] = {}
 
+
+# ── Вспомогательные функции ───────────────────────────────────────────────────
 
 async def _fetch_yk_payment(payment_id: str):
     """Запускает синхронный YkPayment.find_one в thread pool."""
@@ -49,110 +55,134 @@ async def _fetch_yk_payment(payment_id: str):
     return await loop.run_in_executor(None, YkPayment.find_one, payment_id)
 
 
-async def _process_check_payment(callback: CallbackQuery, user_id: int, payment_id: str) -> None:
-    """
-    Проверяет статус платежа ЮKassa.
+def _is_success(yk_payment) -> bool:
+    """True если платёж реально прошёл (succeeded ИЛИ paid=True при pending)."""
+    if yk_payment.status == "succeeded":
+        return True
+    # ЮKassa для СБП иногда возвращает paid=True раньше, чем статус succeeded
+    if getattr(yk_payment, "paid", False) and yk_payment.status == "pending":
+        return True
+    return False
 
-    Делает несколько попыток с задержкой, потому что СБП-платёж может
-    фактически пройти в банке, но ЮKassa ещё не обновила статус в API.
-    """
-    yk_payment = None
 
-    for attempt in range(1, RETRY_ATTEMPTS + 1):
+def _is_canceled(yk_payment) -> bool:
+    return yk_payment.status in ("canceled", "cancelled")
+
+
+async def _activate_subscription(user_id: int, yk_payment) -> None:
+    """Активирует подписку после подтверждения оплаты."""
+    pm = yk_payment.payment_method
+    method_id = pm.id if (pm and pm.id) else None
+    saved_method_id = method_id if (pm and getattr(pm, "saved", False)) else None
+
+    await update_payment_status(yk_payment.id, "succeeded")
+    await create_paid_subscription(user_id, payment_method_id=saved_method_id)
+    await clear_pending_payment_for_user(user_id)
+
+
+# ── Фоновая задача поллинга ───────────────────────────────────────────────────
+
+async def _poll_payment(user_id: int, payment_id: str, bot: Bot) -> None:
+    """
+    Фоновая задача: опрашивает ЮKassa каждые POLL_INTERVAL_SEC секунд.
+    Завершается при успехе, отмене или по таймауту POLL_TIMEOUT_SEC.
+    """
+    elapsed = 0
+
+    while elapsed < POLL_TIMEOUT_SEC:
+        await asyncio.sleep(POLL_INTERVAL_SEC)
+        elapsed += POLL_INTERVAL_SEC
+
         try:
             yk_payment = await _fetch_yk_payment(payment_id)
         except Exception as exc:
-            logger.error("YK payment check error (attempt %d/%d): %s", attempt, RETRY_ATTEMPTS, exc)
-            if attempt == RETRY_ATTEMPTS:
-                await edit_photo_page(
-                    callback,
-                    page="buy",
-                    caption=payment_fail_text(),
-                    reply_markup=back_to_menu_kb(),
+            logger.error("Poll error for user %s payment %s: %s", user_id, payment_id, exc)
+            continue  # сеть упала — пробуем на следующем интервале
+
+        if _is_success(yk_payment):
+            try:
+                await _activate_subscription(user_id, yk_payment)
+                await bot.send_message(
+                    user_id,
+                    "✅ <b>Оплата подтверждена!</b>\n\n"
+                    "Подписка активирована. Открой /menu чтобы получить ссылку на VPN.",
                 )
-                return
-            await asyncio.sleep(RETRY_DELAY_SEC)
-            continue
+                logger.info(
+                    "Payment %s confirmed for user %s (elapsed %ds)",
+                    payment_id, user_id, elapsed,
+                )
+            except Exception as exc:
+                logger.error("Subscription activation failed for user %s: %s", user_id, exc)
+                await bot.send_message(
+                    user_id,
+                    "✅ Оплата принята, но произошла ошибка при активации подписки.\n"
+                    "Напиши в поддержку — разберёмся.",
+                )
+            _polling_tasks.pop(user_id, None)
+            return
 
-        # ЮKassa для СБП иногда возвращает paid=True раньше, чем статус succeeded.
-        # Используем это как дополнительный признак успеха.
-        is_succeeded = yk_payment.status == "succeeded"
-        is_paid_early = getattr(yk_payment, "paid", False) and yk_payment.status == "pending"
-        is_canceled = yk_payment.status in ("canceled", "cancelled")
-
-        if is_succeeded or is_paid_early:
-            break  # платёж прошёл — выходим из цикла retry
-
-        if is_canceled:
-            break  # платёж отменён — тоже выходим
-
-        # Статус ещё pending — ждём и повторяем
-        if attempt < RETRY_ATTEMPTS:
-            logger.info(
-                "Payment %s still pending (attempt %d/%d), retrying in %.1fs...",
-                payment_id, attempt, RETRY_ATTEMPTS, RETRY_DELAY_SEC,
+        if _is_canceled(yk_payment):
+            await update_payment_status(payment_id, "canceled")
+            await clear_pending_payment_for_user(user_id)
+            await bot.send_message(
+                user_id,
+                "❌ <b>Платёж отменён.</b>\n\n"
+                "Попробуй оплатить снова — нажми /menu.",
             )
-            await asyncio.sleep(RETRY_DELAY_SEC)
-        else:
-            logger.info("Payment %s still pending after %d attempts.", payment_id, RETRY_ATTEMPTS)
+            logger.info("Payment %s canceled for user %s", payment_id, user_id)
+            _polling_tasks.pop(user_id, None)
+            return
 
-    if yk_payment is None:
-        return  # ошибки уже обработаны выше
-
-    is_succeeded = yk_payment.status == "succeeded"
-    is_paid_early = getattr(yk_payment, "paid", False) and yk_payment.status == "pending"
-    is_canceled = yk_payment.status in ("canceled", "cancelled")
-
-    if is_succeeded or is_paid_early:
-        await clear_pending_payment_for_user(user_id)
-
-        pm = yk_payment.payment_method
-        method_id = pm.id if (pm and pm.id) else None
-
-        await update_payment_status(payment_id, "succeeded")
-
-        try:
-            # Передаём method_id только если saved=True.
-            # При is_paid_early (paid=True, status=pending) saved может быть False —
-            # это нормально, вебхук запишет method_id позже.
-            saved_method_id = method_id if (pm and getattr(pm, "saved", False)) else None
-            await create_paid_subscription(user_id, payment_method_id=saved_method_id)
-
-            await edit_photo_page(
-                callback,
-                page="menu",
-                caption=payment_success_text(),
-                reply_markup=back_to_menu_kb(),
-            )
-        except Exception as exc:
-            logger.error("Subscription creation after payment failed: %s", exc)
-            await callback.message.answer(
-                "<tg-emoji emoji-id=\"5411197345968701560\">✅</tg-emoji> Оплата принята, но произошла ошибка при создании подписки.\n"
-                "Напиши в поддержку — разберёмся.",
-            )
-
-    elif is_canceled:
-        await clear_pending_payment_for_user(user_id)
-        await update_payment_status(payment_id, "canceled")
-        await edit_photo_page(
-            callback,
-            page="buy",
-            caption=payment_fail_text(),
-            reply_markup=back_to_menu_kb(),
+        logger.debug(
+            "Payment %s still pending for user %s (elapsed %ds/%ds)",
+            payment_id, user_id, elapsed, POLL_TIMEOUT_SEC,
         )
 
-    else:
-        # После всех попыток статус всё ещё pending — сообщаем пользователю подождать.
-        # Вебхук от ЮKassa придёт позже и активирует подписку автоматически.
-        await callback.answer(
-            "Оплата ещё обрабатывается банком. Подождите 1–2 минуты и проверьте снова.",
-            show_alert=True,
-        )
+    # Таймаут исчерпан — оплата так и не подтвердилась
+    await clear_pending_payment_for_user(user_id)
+    _polling_tasks.pop(user_id, None)
+    await bot.send_message(
+        user_id,
+        "❌ <b>Оплата не подтверждена.</b>\n\n"
+        "Банк не прислал подтверждение в течение 15 минут.\n"
+        "Если деньги были списаны — напиши в поддержку.\n"
+        "Попробовать снова: /menu",
+    )
+    logger.warning("Payment %s timed out for user %s", payment_id, user_id)
 
+
+# ── Handlers ──────────────────────────────────────────────────────────────────
 
 @router.callback_query(F.data == "buy")
 async def cb_buy(callback: CallbackQuery) -> None:
     user_id = callback.from_user.id
+
+    # Если уже идёт фоновая проверка — не создаём новый платёж
+    if user_id in _polling_tasks and not _polling_tasks[user_id].done():
+        await callback.answer(
+            "Уже проверяем ваш платёж в фоне. Ожидайте уведомления.",
+            show_alert=True,
+        )
+        return
+
+    # Если есть незавершённый платёж в БД (бот перезапустился или юзер нажал "← Назад")
+    # — запускаем фоновую проверку по нему, не создаём новый
+    existing_payment_id = await get_pending_payment_for_user(user_id)
+    if existing_payment_id:
+        await callback.answer()
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        await callback.message.answer(
+            "⏳ Найден незавершённый платёж. Проверяю в фоне — "
+            "подписка активируется автоматически в течение 5–10 минут.",
+        )
+        task = asyncio.create_task(
+            _poll_payment(user_id, existing_payment_id, callback.bot)
+        )
+        _polling_tasks[user_id] = task
+        return
 
     try:
         payment_id, url = await create_payment_link(user_id)
@@ -161,13 +191,20 @@ async def cb_buy(callback: CallbackQuery) -> None:
         await callback.answer("Не удалось создать платёж. Попробуй позже.", show_alert=True)
         return
 
-    # Сохраняем payment_id в БД — не потеряется при перезапуске
     await save_pending_payment_for_user(user_id, payment_id)
 
     if url is None:
-        # Прямое списание через сохранённый метод — сразу проверяем статус.
+        # Прямое списание — сразу запускаем фоновую проверку
         await callback.answer()
-        await _process_check_payment(callback, user_id, payment_id)
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        await callback.message.answer(
+            "⏳ Списываем оплату... Подписка активируется автоматически.",
+        )
+        task = asyncio.create_task(_poll_payment(user_id, payment_id, callback.bot))
+        _polling_tasks[user_id] = task
     else:
         await edit_photo_page(
             callback,
@@ -182,19 +219,32 @@ async def cb_buy(callback: CallbackQuery) -> None:
 async def cb_check_payment(callback: CallbackQuery) -> None:
     user_id = callback.from_user.id
 
-    # Защита от повторных нажатий: пока идёт проверка — игнорируем дубли.
-    if user_id in _in_progress:
-        await callback.answer("Уже проверяем, подождите...", show_alert=True)
+    # Если фоновая задача уже крутится — просто подтверждаем
+    if user_id in _polling_tasks and not _polling_tasks[user_id].done():
+        await callback.answer(
+            "Уже проверяем! Подписка активируется автоматически — ждите уведомления.",
+            show_alert=True,
+        )
         return
 
-    # Берём payment_id из БД (не из памяти — переживёт рестарт бота)
     payment_id = await get_pending_payment_for_user(user_id)
     if not payment_id:
-        await callback.answer("Нет активного платежа. Начни заново.", show_alert=True)
+        await callback.answer("Нет активного платежа. Начните заново.", show_alert=True)
         return
 
-    _in_progress.add(user_id)
+    # Удаляем сообщение с кнопками и сообщаем что ждать
     try:
-        await _process_check_payment(callback, user_id, payment_id)
-    finally:
-        _in_progress.discard(user_id)
+        await callback.message.delete()
+    except Exception:
+        pass
+
+    await callback.message.answer(
+        "⏳ <b>Проверяем оплату...</b>\n\n"
+        "Подписка активируется автоматически. Обычно это занимает до 1 минуты.\n"
+        "Мы пришлём уведомление, как только всё подтвердится.",
+    )
+    await callback.answer()
+
+    # Запускаем фоновый поллинг
+    task = asyncio.create_task(_poll_payment(user_id, payment_id, callback.bot))
+    _polling_tasks[user_id] = task
