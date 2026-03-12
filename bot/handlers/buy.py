@@ -1,5 +1,13 @@
 """
 handlers/buy.py — оформление и проверка оплаты.
+
+ИСПРАВЛЕНИЯ:
+1. _process_check_payment теперь делает несколько попыток (retry) с паузой,
+   т.к. ЮKassa СБП может возвращать "pending" ещё несколько секунд после
+   реальной оплаты.
+2. Дополнительно проверяется поле paid=True как ранний признак успеха.
+3. _pending сохраняется в БД (get_pending_payment/set_pending_payment),
+   чтобы не теряться при перезапуске бота.
 """
 
 import asyncio
@@ -9,7 +17,12 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from yookassa import Payment as YkPayment
 
-from bot.database.payments import update_payment_status
+from bot.database.payments import (
+    update_payment_status,
+    get_pending_payment_for_user,
+    save_pending_payment_for_user,
+    clear_pending_payment_for_user,
+)
 from bot.database.subscriptions import get_active_subscription, save_payment_method
 from bot.keyboards.user import pay_kb, back_to_menu_kb
 from bot.messages import buy_text, payment_success_text, payment_fail_text
@@ -20,52 +33,90 @@ from bot.utils.media import edit_photo_page
 logger = logging.getLogger(__name__)
 router = Router()
 
-# user_id → yukassa_payment_id
-_pending: dict[int, str] = {}
-
 # user_id → идёт проверка платежа (защита от параллельных нажатий)
+# Это in-memory, но только для защиты от двойных кликов — не критично при рестарте.
 _in_progress: set[int] = set()
+
+# Параметры retry при проверке статуса СБП-платежа.
+# ЮKassa может задержать обновление статуса на несколько секунд после оплаты.
+RETRY_ATTEMPTS = 5       # количество попыток
+RETRY_DELAY_SEC = 3.0    # пауза между попытками (секунды)
+
+
+async def _fetch_yk_payment(payment_id: str):
+    """Запускает синхронный YkPayment.find_one в thread pool."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, YkPayment.find_one, payment_id)
 
 
 async def _process_check_payment(callback: CallbackQuery, user_id: int, payment_id: str) -> None:
     """
-    Общая логика проверки статуса платежа ЮКассы.
+    Проверяет статус платежа ЮKassa.
+
+    Делает несколько попыток с задержкой, потому что СБП-платёж может
+    фактически пройти в банке, но ЮKassa ещё не обновила статус в API.
     """
-    try:
-        # YkPayment.find_one — синхронный HTTP-запрос; запускаем в thread pool,
-        # чтобы не блокировать asyncio event loop.
-        loop = asyncio.get_event_loop()
-        yk_payment = await loop.run_in_executor(None, YkPayment.find_one, payment_id)
-    except Exception as exc:
-        logger.error("YK payment check error: %s", exc)
-        await edit_photo_page(
-            callback,
-            page="buy",
-            caption=payment_fail_text(),
-            reply_markup=back_to_menu_kb(),
-        )
-        return
+    yk_payment = None
 
-    if yk_payment.status == "succeeded":
-        _pending.pop(user_id, None)
+    for attempt in range(1, RETRY_ATTEMPTS + 1):
+        try:
+            yk_payment = await _fetch_yk_payment(payment_id)
+        except Exception as exc:
+            logger.error("YK payment check error (attempt %d/%d): %s", attempt, RETRY_ATTEMPTS, exc)
+            if attempt == RETRY_ATTEMPTS:
+                await edit_photo_page(
+                    callback,
+                    page="buy",
+                    caption=payment_fail_text(),
+                    reply_markup=back_to_menu_kb(),
+                )
+                return
+            await asyncio.sleep(RETRY_DELAY_SEC)
+            continue
 
-        # Берём id метода оплаты.
-        # ВАЖНО: для СБП ЮКасса может вернуть saved=False при первом find_one
-        # (метод сохраняется асинхронно), но id уже есть.
-        # Сохраняем id сейчас; вебхук обновит флаг saved=True и подтвердит.
+        # ЮKassa для СБП иногда возвращает paid=True раньше, чем статус succeeded.
+        # Используем это как дополнительный признак успеха.
+        is_succeeded = yk_payment.status == "succeeded"
+        is_paid_early = getattr(yk_payment, "paid", False) and yk_payment.status == "pending"
+        is_canceled = yk_payment.status in ("canceled", "cancelled")
+
+        if is_succeeded or is_paid_early:
+            break  # платёж прошёл — выходим из цикла retry
+
+        if is_canceled:
+            break  # платёж отменён — тоже выходим
+
+        # Статус ещё pending — ждём и повторяем
+        if attempt < RETRY_ATTEMPTS:
+            logger.info(
+                "Payment %s still pending (attempt %d/%d), retrying in %.1fs...",
+                payment_id, attempt, RETRY_ATTEMPTS, RETRY_DELAY_SEC,
+            )
+            await asyncio.sleep(RETRY_DELAY_SEC)
+        else:
+            logger.info("Payment %s still pending after %d attempts.", payment_id, RETRY_ATTEMPTS)
+
+    if yk_payment is None:
+        return  # ошибки уже обработаны выше
+
+    is_succeeded = yk_payment.status == "succeeded"
+    is_paid_early = getattr(yk_payment, "paid", False) and yk_payment.status == "pending"
+    is_canceled = yk_payment.status in ("canceled", "cancelled")
+
+    if is_succeeded or is_paid_early:
+        await clear_pending_payment_for_user(user_id)
+
         pm = yk_payment.payment_method
         method_id = pm.id if (pm and pm.id) else None
 
         await update_payment_status(payment_id, "succeeded")
 
         try:
-            # method_id передаём только если метод реально сохранён (saved=True).
-            # Если saved=False — передаём None; вебхук позже запишет id в БД.
+            # Передаём method_id только если saved=True.
+            # При is_paid_early (paid=True, status=pending) saved может быть False —
+            # это нормально, вебхук запишет method_id позже.
             saved_method_id = method_id if (pm and getattr(pm, "saved", False)) else None
             await create_paid_subscription(user_id, payment_method_id=saved_method_id)
-
-            # payment_method_id сохраняется только через вебхук (saved=True).
-            # Сохранять id при saved=False нельзя — ЮКасса вернёт ошибку при автосписании.
 
             await edit_photo_page(
                 callback,
@@ -80,8 +131,8 @@ async def _process_check_payment(callback: CallbackQuery, user_id: int, payment_
                 "Напиши в поддержку — разберёмся.",
             )
 
-    elif yk_payment.status in ("canceled", "cancelled"):
-        _pending.pop(user_id, None)
+    elif is_canceled:
+        await clear_pending_payment_for_user(user_id)
         await update_payment_status(payment_id, "canceled")
         await edit_photo_page(
             callback,
@@ -91,7 +142,12 @@ async def _process_check_payment(callback: CallbackQuery, user_id: int, payment_
         )
 
     else:
-        await callback.answer("Оплата ещё не подтверждена. Подождите немного.", show_alert=True)
+        # После всех попыток статус всё ещё pending — сообщаем пользователю подождать.
+        # Вебхук от ЮKassa придёт позже и активирует подписку автоматически.
+        await callback.answer(
+            "Оплата ещё обрабатывается банком. Подождите 1–2 минуты и проверьте снова.",
+            show_alert=True,
+        )
 
 
 @router.callback_query(F.data == "buy")
@@ -105,7 +161,8 @@ async def cb_buy(callback: CallbackQuery) -> None:
         await callback.answer("Не удалось создать платёж. Попробуй позже.", show_alert=True)
         return
 
-    _pending[user_id] = payment_id
+    # Сохраняем payment_id в БД — не потеряется при перезапуске
+    await save_pending_payment_for_user(user_id, payment_id)
 
     if url is None:
         # Прямое списание через сохранённый метод — сразу проверяем статус.
@@ -130,7 +187,8 @@ async def cb_check_payment(callback: CallbackQuery) -> None:
         await callback.answer("Уже проверяем, подождите...", show_alert=True)
         return
 
-    payment_id = _pending.get(user_id)
+    # Берём payment_id из БД (не из памяти — переживёт рестарт бота)
+    payment_id = await get_pending_payment_for_user(user_id)
     if not payment_id:
         await callback.answer("Нет активного платежа. Начни заново.", show_alert=True)
         return

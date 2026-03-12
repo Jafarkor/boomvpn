@@ -59,3 +59,76 @@ async def get_user_payments(user_id: int) -> list[dict]:
             user_id,
         )
     return [dict(r) for r in rows]
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ДОБАВИТЬ в конец bot/database/payments.py
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# Эти 3 функции заменяют in-memory словарь _pending из handlers/buy.py.
+# Благодаря хранению в БД payment_id не теряется при перезапуске бота.
+#
+# Также нужно выполнить миграцию (один раз):
+#   ALTER TABLE payments
+#     ADD COLUMN IF NOT EXISTS is_pending_check BOOLEAN NOT NULL DEFAULT FALSE;
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+async def get_pending_payment_for_user(user_id: int) -> str | None:
+    """
+    Возвращает yukassa_payment_id последнего незавершённого (pending) платежа
+    пользователя, который ожидает ручной проверки из бота.
+    """
+    async with get_pool().acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT yukassa_payment_id
+            FROM payments
+            WHERE user_id = $1
+              AND status = 'pending'
+              AND is_pending_check = TRUE
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            user_id,
+        )
+    return row["yukassa_payment_id"] if row else None
+
+
+async def save_pending_payment_for_user(user_id: int, yukassa_payment_id: str) -> None:
+    """
+    Помечает платёж как ожидающий ручной проверки.
+    Сбрасывает флаг у предыдущих незавершённых платежей этого пользователя.
+    """
+    async with get_pool().acquire() as conn:
+        # Сбрасываем старые флаги
+        await conn.execute(
+            """
+            UPDATE payments
+            SET is_pending_check = FALSE
+            WHERE user_id = $1 AND status = 'pending'
+            """,
+            user_id,
+        )
+        # Устанавливаем флаг на новый платёж
+        await conn.execute(
+            """
+            UPDATE payments
+            SET is_pending_check = TRUE
+            WHERE yukassa_payment_id = $1
+            """,
+            yukassa_payment_id,
+        )
+
+
+async def clear_pending_payment_for_user(user_id: int) -> None:
+    """Снимает флаг ожидания после успешной/отменённой проверки."""
+    async with get_pool().acquire() as conn:
+        await conn.execute(
+            """
+            UPDATE payments
+            SET is_pending_check = FALSE
+            WHERE user_id = $1 AND is_pending_check = TRUE
+            """,
+            user_id,
+        )

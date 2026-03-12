@@ -51,6 +51,12 @@ async def create_tables() -> None:
             )
         """)
 
+        # Миграция: колонка для отслеживания платежей, ожидающих ручной проверки
+        await conn.execute("""
+            ALTER TABLE payments
+                ADD COLUMN IF NOT EXISTS is_pending_check BOOLEAN NOT NULL DEFAULT FALSE
+        """)
+
         await conn.execute("""
 
         CREATE TABLE IF NOT EXISTS referrals (
