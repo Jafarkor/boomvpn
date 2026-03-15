@@ -5,12 +5,14 @@ GET /dl/app
     Определяет устройство по User-Agent и перенаправляет в нужный магазин:
       • iOS / macOS  → App Store (Streisand)
       • Android      → Google Play (v2RayTun)
-      • Всё остальное → GitHub (Nekoray / Windows)
+      • Windows      → Microsoft Store (Hiddify)
+      • Всё остальное → GitHub (Hiddify — последний релиз)
 
 GET /dl/sub?url=<subscription_url>
     Определяет устройство и открывает нужный deep link для импорта подписки:
       • iOS          → streisand://import/<subscription_url>
       • Android      → v2raytun://import/<subscription_url>
+      • Windows      → hiddify://import/<subscription_url>
       • Всё остальное → перенаправляет прямо на subscription_url
 """
 
@@ -25,17 +27,20 @@ logger = logging.getLogger(__name__)
 
 APP_IOS     = "https://apps.apple.com/ru/app/streisand/id6450534064"
 APP_ANDROID = "https://play.google.com/store/apps/details?id=com.v2raytun.android"
-APP_WINDOWS = "https://github.com/MatsuriDayo/nekoray/releases/latest"
+APP_WINDOWS = "https://apps.microsoft.com/detail/9pdfnl3qv2s5"   # Hiddify в Microsoft Store
+APP_OTHER   = "https://github.com/hiddify/hiddify-app/releases/latest"  # Hiddify для Linux и пр.
 
 # ── Определение платформы ─────────────────────────────────────────────────────
 
 def _detect_platform(request: web.Request) -> str:
-    """Возвращает 'ios', 'android' или 'other' по User-Agent."""
+    """Возвращает 'ios', 'android', 'windows' или 'other' по User-Agent."""
     ua = request.headers.get("User-Agent", "").lower()
     if any(x in ua for x in ("iphone", "ipad", "macintosh", "mac os x")):
         return "ios"
     if "android" in ua:
         return "android"
+    if "windows" in ua:
+        return "windows"
     return "other"
 
 
@@ -48,8 +53,10 @@ async def redirect_app(request: web.Request) -> web.Response:
         target = APP_IOS
     elif platform == "android":
         target = APP_ANDROID
-    else:
+    elif platform == "windows":
         target = APP_WINDOWS
+    else:
+        target = APP_OTHER
     logger.info("redirect_app: platform=%s → %s", platform, target)
     raise web.HTTPFound(location=target)
 
@@ -78,9 +85,14 @@ async def redirect_sub(request: web.Request) -> web.Response:
         # v2RayTun импортирует подписку по deep link:
         # v2raytun://import/<url>
         target = f"v2raytun://import/{sub_url}"
+    elif platform == "windows":
+        # Hiddify импортирует подписку по deep link:
+        # hiddify://import/<url>
+        # Работает на Windows, если Hiddify установлен (в т.ч. из Microsoft Store)
+        target = f"hiddify://import/{sub_url}"
     else:
-        # На Windows / десктопе открываем ссылку напрямую —
-        # пользователь скопирует её вручную в Nekoray.
+        # На Linux/прочих — открываем ссылку напрямую,
+        # пользователь скопирует её вручную в Hiddify.
         target = sub_url
 
     logger.info("redirect_sub: platform=%s → %s", platform, target)
